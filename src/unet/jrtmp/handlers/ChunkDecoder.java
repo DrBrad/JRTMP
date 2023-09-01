@@ -7,7 +7,9 @@ import unet.jrtmp.rtmp.messages.SetChunkSize;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 public class ChunkDecoder {
 
@@ -19,11 +21,14 @@ public class ChunkDecoder {
 
     private InputStream in;
 
+    //private List<RtmpMessage> out;
+
     public ChunkDecoder(InputStream in/*, OutputStream out*/){
         this.in = in;
 
         prevousHeaders = new HashMap<>(4);
         inCompletePayload = new HashMap<>(4);
+        //out = new ArrayList<>();
     }
 
     public void decode()throws IOException {
@@ -57,7 +62,6 @@ public class ChunkDecoder {
         //payloadPosition += length; //WE NEED TO FIGURE OUT WHAT TO DO WITH THIS...
 
         if(currentPayload.hasRemaining()){
-            System.out.println("LENGTH ISSUE");
             decode();
             return;
         }
@@ -67,14 +71,15 @@ public class ChunkDecoder {
         currentPayload.flip();
         RtmpMessage message = RtmpMessageDecoder.decode(prevousHeaders.get(currentCsid), currentPayload);
 
-        //if(message instanceof )
+        if(message == null){
+            return;
+        }
 
         if(message instanceof SetChunkSize){
             SetChunkSize scs = (SetChunkSize) message;
             clientChunkSize = scs.getChunkSize();
-            //log.debug("------------>client set chunkSize to :{}", clientChunkSize);
         }else{
-            //out.add(msg);
+            //out.add(message);
         }
     }
 

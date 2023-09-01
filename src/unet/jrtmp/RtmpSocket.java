@@ -1,6 +1,7 @@
 package unet.jrtmp;
 
 import unet.jrtmp.handlers.ChunkDecoder;
+import unet.jrtmp.rtmp.RtmpMessage;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -58,6 +59,7 @@ public class RtmpSocket extends Thread {
 
                 ChunkDecoder chunkDecoder = new ChunkDecoder(in);
                 chunkDecoder.decode();
+
 
                 //ChunkEncoder chunkEncoder = new ChunkEncoder(out);
                 //chunkEncoder.encode();
