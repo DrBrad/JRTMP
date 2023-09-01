@@ -1,7 +1,5 @@
 package unet.jrtmp.rtmp.messages;
 
-import unet.jrtmp.rtmp.RtmpMessage;
-
 public class RtmpObjectMessage extends RtmpMessage {
 
     //List<Object> body;

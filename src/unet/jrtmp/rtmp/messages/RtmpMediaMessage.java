@@ -1,7 +1,5 @@
 package unet.jrtmp.rtmp.messages;
 
-import unet.jrtmp.rtmp.RtmpMessage;
-
 public abstract class RtmpMediaMessage extends RtmpMessage {
 
     private int timestamp, timestampDelta;

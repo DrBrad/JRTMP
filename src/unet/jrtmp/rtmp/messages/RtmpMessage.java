@@ -1,4 +1,4 @@
-package unet.jrtmp.rtmp;
+package unet.jrtmp.rtmp.messages;
 
 public abstract class RtmpMessage {
 
@@ -16,5 +16,13 @@ public abstract class RtmpMessage {
 
     public void setInboundBodyLength(int inboundBodyLength){
         this.inboundBodyLength = inboundBodyLength;
+    }
+
+    public int getInboundHeaderLength(){
+        return inboundHeaderLength;
+    }
+
+    public int getInboundBodyLength(){
+        return inboundBodyLength;
     }
 }

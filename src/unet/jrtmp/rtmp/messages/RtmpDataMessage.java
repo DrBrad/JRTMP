@@ -1,7 +1,5 @@
 package unet.jrtmp.rtmp.messages;
 
-import unet.jrtmp.rtmp.RtmpMessage;
-
 import java.util.List;
 
 public class RtmpDataMessage extends RtmpMessage {
@@ -30,5 +28,9 @@ public class RtmpDataMessage extends RtmpMessage {
         return buffer;
         */
         return new byte[0];
+    }
+
+    public List<Object> getData(){
+        return data;
     }
 }

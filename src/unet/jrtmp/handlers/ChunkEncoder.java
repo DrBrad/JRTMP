@@ -1,6 +1,6 @@
 package unet.jrtmp.handlers;
 
-import unet.jrtmp.rtmp.RtmpMessage;
+import unet.jrtmp.rtmp.messages.RtmpMessage;
 import unet.jrtmp.rtmp.messages.AudioMessage;
 import unet.jrtmp.rtmp.messages.SetChunkSize;
 import unet.jrtmp.rtmp.messages.UserControlMessageEvent;

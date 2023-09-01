@@ -1,15 +1,13 @@
 package unet.jrtmp.handlers;
 
-import unet.jrtmp.rtmp.RtmpMessage;
+import unet.jrtmp.rtmp.messages.RtmpMessage;
 import unet.jrtmp.rtmp.RtmpMessageDecoder;
 import unet.jrtmp.rtmp.messages.SetChunkSize;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 
 public class ChunkDecoder {
 
@@ -31,7 +29,7 @@ public class ChunkDecoder {
         //out = new ArrayList<>();
     }
 
-    public void decode()throws IOException {
+    public RtmpMessage decode()throws IOException {
         RtmpHeader header = readHeader();
         completeHeader(header);
 
@@ -63,7 +61,7 @@ public class ChunkDecoder {
 
         if(currentPayload.hasRemaining()){
             decode();
-            return;
+            return null;
         }
 
         inCompletePayload.remove(currentCsid);
@@ -72,15 +70,17 @@ public class ChunkDecoder {
         RtmpMessage message = RtmpMessageDecoder.decode(prevousHeaders.get(currentCsid), currentPayload);
 
         if(message == null){
-            return;
+            return null;
         }
 
         if(message instanceof SetChunkSize){
             SetChunkSize scs = (SetChunkSize) message;
             clientChunkSize = scs.getChunkSize();
-        }else{
+            return null;
+        }//else{
             //out.add(message);
-        }
+        //}
+        return message;
     }
 
     private RtmpHeader readHeader()throws IOException {
