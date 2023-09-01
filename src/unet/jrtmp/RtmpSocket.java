@@ -4,6 +4,7 @@ import unet.jrtmp.amf.AMF0Object;
 import unet.jrtmp.handlers.ChunkDecoder;
 import unet.jrtmp.rtmp.messages.RtmpMessage;
 import unet.jrtmp.rtmp.messages.*;
+import unet.jrtmp.stream.Stream;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -78,7 +79,7 @@ public class RtmpSocket extends Thread {
                 */
                 if(message instanceof WindowAcknowledgementSize){
                     int ackSize = ((WindowAcknowledgementSize) message).getWindowSize();
-                    this.ackWindowSize = ackSize;
+                    ackWindowSize = ackSize;
                     return;
                 }
 
@@ -88,7 +89,7 @@ public class RtmpSocket extends Thread {
                 }else if(message instanceof RtmpDataMessage){
                     handleDataMessage((RtmpDataMessage) message);
 
-                }else if(message instanceof  RtmpMediaMessage){
+                }else if(message instanceof RtmpMediaMessage){
                     handleMedia((RtmpMediaMessage) message);
 
                 }else if(message instanceof UserControlMessageEvent){
@@ -173,10 +174,11 @@ public class RtmpSocket extends Thread {
             Map<String, Object> properties = (Map<String, Object>) message.getData().get(2);
             properties.remove("filesize");
 
-            String encoder = (String)properties.get("encoder");
+            String encoder = (String) properties.get("encoder");
             if(encoder != null && encoder.contains("obs")){
                 streamName.setObsClient(true);
             }
+
             Stream stream = streamManager.getStream(streamName);
             stream.setMetadata(properties);
         }
