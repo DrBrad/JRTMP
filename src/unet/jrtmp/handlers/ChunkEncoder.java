@@ -1,5 +1,11 @@
 package unet.jrtmp.handlers;
 
+import unet.jrtmp.rtmp.RtmpMessage;
+import unet.jrtmp.rtmp.messages.AudioMessage;
+import unet.jrtmp.rtmp.messages.SetChunkSize;
+import unet.jrtmp.rtmp.messages.VideoMessage;
+
+import java.io.IOException;
 import java.io.OutputStream;
 
 public class ChunkEncoder {
@@ -13,7 +19,6 @@ public class ChunkEncoder {
     public ChunkEncoder(OutputStream out){
         this.out = out;
     }
-    /*
 
     public void encode(RtmpMessage message){
         if(message instanceof SetChunkSize){
@@ -49,19 +54,24 @@ public class ChunkEncoder {
         encodeWithFmt1(message, message.getTimestampDelta());
     }
 
-    private void encodeWithFmt1(RtmpMessage message, int timestampDelta){
+    private void encodeWithFmt1(RtmpMessage message, int timestampDelta)throws IOException {
         int outboundCsid = message.getOutboundCsid();
 
         out.write(encodeFmtAndCsid(1, outboundCsid));
         //buffer.writeBytes(encodeFmtAndCsid(1, outboundCsid));
 
-        ByteBuf payload = msg.encodePayload();
-        buffer.writeMedium(timestampDelta);
-        buffer.writeMedium(payload.readableBytes());
-        buffer.writeByte(msg.getMsgType());
+        out.write(message.encodePayload());
+        out.write(); //timestampDelta - Medium
+        out.write(); //payload length - Medium
+        out.write(message.getMessageType());
+
+        //ByteBuf payload = msg.encodePayload();
+        //buffer.writeMedium(timestampDelta);
+        //buffer.writeMedium(payload.readableBytes());
+        //buffer.writeByte(msg.getMsgType());
 
         boolean fmt1Part = true;
-        while (payload.isReadable()) {
+        while(payload.isReadable()){
             int min = Math.min(chunkSize, payload.readableBytes());
 
             if (fmt1Part) {
@@ -155,5 +165,5 @@ public class ChunkEncoder {
                     (byte) ((csid - 64) >> 8)
             };
         }
-    }*/
+    }
 }

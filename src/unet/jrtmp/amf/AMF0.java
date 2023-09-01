@@ -1,14 +1,16 @@
 package unet.jrtmp.amf;
 
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.*;
 
 public class AMF0 {
 
-    //private static final byte BOOLEAN_TRUE = 0x01, BOOLEAN_FALSE = 0x00;
     private static final byte[] OBJECT_END_MARKER = new byte[]{ 0x00, 0x00, 0x09 };
 
+    public static void encode(OutputStream out, Object value){
+
+    }
 
     /*
     public static void encode(OutputStream out, Object value)throws IOException {
@@ -87,12 +89,6 @@ public class AMF0 {
         }
     }
 
-    */
-
-    /*
-    public AMF0(byte[] buf){
-        this.buf = buf;
-    }
     */
 
     public static List<Object> decodeAll(ByteBuffer payload){
