@@ -6,15 +6,16 @@ import unet.jrtmp.rtmp.messages.SetChunkSize;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 
 public class ChunkDecoder {
 
     private int clientChunkSize = 128, currentCsid;//, payloadPosition;
     private HashMap<Integer/* csid */, RtmpHeader> prevousHeaders;
-    private HashMap<Integer/* csid */, byte[]> inCompletePayload;
+    private HashMap<Integer/* csid */, ByteBuffer> inCompletePayload;
 
-    private byte[] currentPayload;
+    private ByteBuffer currentPayload;
 
     private InputStream in;
     //private OutputStream out;
@@ -34,7 +35,8 @@ public class ChunkDecoder {
         currentCsid = header.getCsid();
 
         if(header.getFmt() != 3){
-            byte[] buffer = new byte[header.getMessageLength()];
+            ByteBuffer buffer = ByteBuffer.allocate(header.getMessageLength());
+            //byte[] buffer = new byte[header.getMessageLength()];
             inCompletePayload.put(header.getCsid(), buffer);
             prevousHeaders.put(header.getCsid(), header);
         }
@@ -42,7 +44,7 @@ public class ChunkDecoder {
         currentPayload = inCompletePayload.get(header.getCsid());
         if(currentPayload == null){
             RtmpHeader previousHeader = prevousHeaders.get(header.getCsid());
-            currentPayload = new byte[previousHeader.getMessageLength()];
+            currentPayload = ByteBuffer.allocate(previousHeader.getMessageLength());//new byte[previousHeader.getMessageLength()];
             inCompletePayload.put(header.getCsid(), currentPayload);
         }
 
@@ -50,19 +52,21 @@ public class ChunkDecoder {
 
         //System.out.println(in.available()+"  "+payloadPosition);
 
-        int length = in.read(currentPayload, 0, Math.min(currentPayload.length, clientChunkSize));
+        byte[] bytes = new byte[Math.min(currentPayload.remaining(), clientChunkSize)];
+        in.read(bytes);
+        currentPayload.put(bytes);
+        //int length = in.read(currentPayload, 0, Math.min(currentPayload.remaining(), clientChunkSize));
         //payloadPosition += length; //WE NEED TO FIGURE OUT WHAT TO DO WITH THIS...
 
-        /*
-        if(payloadPosition < currentPayload.length){
+        if(currentPayload.hasRemaining()){
             System.out.println("LENGTH ISSUE");
             decode();
             return;
         }
-        */
 
         inCompletePayload.remove(currentCsid);
 
+        currentPayload.flip();
         RtmpMessage message = RtmpMessageDecoder.decode(prevousHeaders.get(currentCsid), currentPayload);
 
         //if(message instanceof )

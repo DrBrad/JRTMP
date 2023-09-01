@@ -1,109 +1,14 @@
 package unet.jrtmp.amf;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.*;
-
-import static unet.jrtmp.handlers.ByteUtils.*;
 
 public class AMF0 {
 
-    public enum Type {
-
-        NUMBER(0x00),
-        BOOLEAN(0x01),
-        STRING(0x02),
-        OBJECT(0x03),
-        NULL(0x05),
-        UNDEFINED(0x06),
-        MAP(0x08),
-        ARRAY(0x0A),
-        DATE(0x0B),
-        LONG_STRING(0x0C),
-        UNSUPPORTED(0x0D);
-
-        private final int value;
-
-        Type(int value){
-            this.value = value;
-        }
-
-        public int intValue(){
-            return value;
-        }
-
-        private static Type getType(final Object value){
-            if(value == null){
-                return NULL;
-
-            }else if(value instanceof String){
-                return STRING;
-
-            }else if(value instanceof Number){
-                return NUMBER;
-
-            }else if(value instanceof Boolean){
-                return BOOLEAN;
-
-            }else if(value instanceof AMF0Object){
-                return OBJECT;
-
-            }else if(value instanceof Map){
-                return MAP;
-
-            }else if(value instanceof Object[]){
-                return ARRAY;
-
-            }else if(value instanceof Date){
-                return DATE;
-
-            }else{
-                throw new RuntimeException("unexpected type: " + value.getClass());
-            }
-        }
-
-        public static Type valueToEnum(int value){
-            switch(value){
-                case 0x00:
-                    return NUMBER;
-
-                case 0x01:
-                    return BOOLEAN;
-
-                case 0x02:
-                    return STRING;
-
-                case 0x03:
-                    return OBJECT;
-
-                case 0x05:
-                    return NULL;
-
-                case 0x06:
-                    return UNDEFINED;
-
-                case 0x08:
-                    return MAP;
-
-                case 0x0A:
-                    return ARRAY;
-
-                case 0x0B:
-                    return DATE;
-
-                case 0x0C:
-                    return LONG_STRING;
-
-                case 0x0D:
-                    return UNSUPPORTED;
-
-                default:
-                    throw new RuntimeException("unexpected type: " + value);
-            }
-        }
-    }
-
     //private static final byte BOOLEAN_TRUE = 0x01, BOOLEAN_FALSE = 0x00;
     private static final byte[] OBJECT_END_MARKER = new byte[]{ 0x00, 0x00, 0x09 };
+
 
     /*
     public static void encode(OutputStream out, Object value)throws IOException {
@@ -184,53 +89,55 @@ public class AMF0 {
 
     */
 
-    private byte[] buf;
-    private int pos;
-
+    /*
     public AMF0(byte[] buf){
         this.buf = buf;
     }
+    */
 
-    public static List<Object> decodeAll(byte[] buf){
-        ByteBuffer buffer = ByteBuffer.wrap(buf);
+    public static List<Object> decodeAll(ByteBuffer payload){
+        //ByteBuffer buffer = ByteBuffer.wrap(buf);
+        //buffer.order(ByteOrder.BIG_ENDIAN);
         List<Object> result = new ArrayList<>();
 
-        while(buffer.remaining() > 0){
-            result.add(buffer.get(), buffer);
+        while(payload.hasRemaining()){
+            result.add(decode(Types.valueToEnum(payload.get()), payload));
         }
-
-
-        /*
-        while(pos > buf.length){
-            result.add(decode());
-        }
-
-        System.out.println(buf.length+"  "+new String(buf)+"  "+result.size());
-        */
 
         return result;
     }
 
-    private static Object decode(byte type, ByteBuffer buffer){
+    private static Object decode(Types type, ByteBuffer payload){
         switch(type){
-            case 0x00: //NUMBER
-                return buffer.getDouble();
+            case NUMBER: { //NUMBER
+                    //double d = buffer.getDouble();
+                    double d = Double.longBitsToDouble(payload.getLong()); //readDouble???
+                    System.out.println("NUMBER  "+d);
+                    return d;
+                    //return buffer.getDouble();
+                }
 
-            case 0x01: //BOOLEAN
-                return buffer.get() != 0;
+            case BOOLEAN: { //BOOLEAN
+                    boolean b = payload.get() != 0;
+                    System.out.println("BOOLEAN  "+b);
+                    return b;
+                    //return buffer.get() != 0;
+                }
 
-            case 0x02: { //STRING
-                    int length = buffer.getShort() & 0xFFFF; // Convert to unsigned short
-                    byte[] str = new byte[length];
-                    buffer.get(str);
+            case STRING: { //STRING
+                    byte[] str = new byte[payload.getShort()];
+                    payload.get(str);
+                    System.out.println("STRING  "+new String(str)+"  "+str.length);
                     return new String(str);
                 }
 
-            case 0x03: { //OBJECT
+            case OBJECT, MAP: { //OBJECT
+                System.out.println("OBJECT");
                     int count;
                     Map<String, Object> map;
-                    if(type == 0x08){
-                        count = buffer.getInt(); // should always be 0
+
+                    if(type == Types.MAP){
+                        count = payload.getInt(); // should always be 0
                         map = new LinkedHashMap<>();
                         if(count > 0){
                             //log.debug("non-zero size for MAP type: {}", count);
@@ -241,46 +148,65 @@ public class AMF0 {
                     }
 
                     int i = 0;
-                    byte[] endMarker = new byte[3];
-                    while(buffer.remaining() > 0){
+                    while(payload.hasRemaining()){
+                        /*
+                        byte[] endMarker = new byte[3];
                         buffer.get(endMarker);
+
                         if(Arrays.equals(endMarker, OBJECT_END_MARKER)){
-                            buffer.position(buffer.position()+3);
-                            //log.debug("end MAP / OBJECT, found object end marker [000009]");
                             break;
                         }
+
+                        buffer.position(buffer.position()-3);
+                        */
+
                         if(count > 0 && i++ == count){
-                            //log.debug("stopping map decode after reaching count: {}", count);
                             break;
                         }
-                        map.put(decodeString(in), decode(in));
+
+                        short size = payload.getShort();
+                        if(size == 0){
+                            if(payload.get() == 0x09){
+                                break;
+                            }
+                        }
+
+                        byte[] str = new byte[size];
+                        payload.get(str);
+
+                        byte tb = payload.get();
+                        Types typ = Types.valueToEnum(tb);
+                        System.out.println("KEY  "+new String(str));
+
+                        map.put(new String(str), decode(typ, payload));
                     }
                     return map;
                 }
 
-            case 0x0A: { //ARRAY
-                    int arraySize = in.readInt();
-                    Object[] array = new Object[arraySize];
-                    for(int i = 0; i < arraySize; i++){
-                        array[i] = decode(in);
+            case ARRAY: { //ARRAY
+                System.out.println("ARRAY");
+                    Object[] array = new Object[payload.getInt()];
+                    for(int i = 0; i < array.length; i++){
+                        array[i] = decode(Types.valueToEnum(payload.get()), payload);
                     }
                     return array;
                 }
 
-            case 0x0B: { //DATE
-                    long dateValue = buffer.getLong();
-                    buffer.getShort(); // consume the timezone
+            case DATE: { //DATE
+                System.out.println("DATE");
+                    long dateValue = payload.getLong();
+                    payload.getShort(); // consume the timezone
                     return new Date((long) Double.longBitsToDouble(dateValue));
                 }
 
-            case 0x0C: { //LONG STRING
-                    int stringSize = buffer.getInt();
-                    byte[] str = new byte[stringSize];
-                    buffer.get(str);
+            case LONG_STRING: { //LONG STRING
+                System.out.println("LONG STRING");
+                    byte[] str = new byte[payload.getInt()];
+                    payload.get(str);
                     return new String(str);
                 }
 
-            case 0x0D, 0x05: //UNSUPPORTED
+            case NULL, UNSUPPORTED: //UNSUPPORTED
                 return null;
 
             // Add more cases for other AMF0 types as needed
@@ -350,7 +276,7 @@ public class AMF0 {
 
                     }else{
                     }
-                    */
+                    *./
                     count = 0;
                     map = new AMF0Object();
 
@@ -398,15 +324,113 @@ public class AMF0 {
     }
     */
 
-    private static String toString(Type type, Object value){
+    private static String toString(Types type, Object value){
         StringBuilder sb = new StringBuilder();
         sb.append('[').append(type).append(" ");
-        if(type == Type.ARRAY){
+        if(type == Types.ARRAY){
             sb.append(Arrays.toString((Object[]) value));
         }else{
             sb.append(value);
         }
         sb.append(']');
         return sb.toString();
+    }
+
+
+    public enum Types {
+
+        NUMBER(0x00),
+        BOOLEAN(0x01),
+        STRING(0x02),
+        OBJECT(0x03),
+        NULL(0x05),
+        //UNDEFINED(0x06),
+        MAP(0x08), //ECMA
+        ARRAY(0x0A), //STRICT ARRAY
+        DATE(0x0B),
+        LONG_STRING(0x0C),
+        XML_DOCUMENT(0x0F),
+        TYPED_OBJECT(0x10),
+        UNSUPPORTED(0x0D);
+
+        private int value;
+
+        Types(int value){
+            this.value = value;
+        }
+
+        public int intValue(){
+            return value;
+        }
+
+        private static Types getType(Object value){
+            if(value == null){
+                return NULL;
+
+            }else if(value instanceof String){
+                return STRING;
+
+            }else if(value instanceof Number){
+                return NUMBER;
+
+            }else if(value instanceof Boolean){
+                return BOOLEAN;
+
+            }else if(value instanceof AMF0Object){
+                return OBJECT;
+
+            }else if(value instanceof Map){
+                return MAP;
+
+            }else if(value instanceof Object[]){
+                return ARRAY;
+
+            }else if(value instanceof Date){
+                return DATE;
+
+            }else{
+                throw new RuntimeException("unexpected type: " + value.getClass());
+            }
+        }
+
+        public static Types valueToEnum(int value){
+            switch(value){
+                case 0x00:
+                    return NUMBER;
+
+                case 0x01:
+                    return BOOLEAN;
+
+                case 0x02:
+                    return STRING;
+
+                case 0x03:
+                    return OBJECT;
+
+                case 0x05:
+                    return NULL;
+
+                //case 0x06:
+                //    return UNDEFINED;
+
+                case 0x08:
+                    return MAP;
+
+                case 0x0A:
+                    return ARRAY;
+
+                case 0x0B:
+                    return DATE;
+
+                case 0x0C:
+                    return LONG_STRING;
+
+                case 0x0D:
+                    return UNSUPPORTED;
+
+                default:
+                    throw new RuntimeException("unexpected type: " + value);
+            }
+        }
     }
 }

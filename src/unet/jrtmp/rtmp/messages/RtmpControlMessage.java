@@ -1,6 +1,6 @@
 package unet.jrtmp.rtmp.messages;
 
-import tv.flixbox.server.rtmp.RtmpMessage;
+import unet.jrtmp.rtmp.RtmpMessage;
 
 public abstract class RtmpControlMessage extends RtmpMessage {
 
