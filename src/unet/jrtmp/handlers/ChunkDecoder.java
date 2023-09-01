@@ -11,18 +11,16 @@ import java.util.HashMap;
 
 public class ChunkDecoder {
 
-    private int clientChunkSize = 128, currentCsid;//, payloadPosition;
+    private int clientChunkSize = 128, currentCsid;
     private HashMap<Integer/* csid */, RtmpHeader> prevousHeaders;
     private HashMap<Integer/* csid */, ByteBuffer> inCompletePayload;
 
     private ByteBuffer currentPayload;
 
     private InputStream in;
-    //private OutputStream out;
 
     public ChunkDecoder(InputStream in/*, OutputStream out*/){
         this.in = in;
-        //this.out = out;
 
         prevousHeaders = new HashMap<>(4);
         inCompletePayload = new HashMap<>(4);

@@ -3,6 +3,7 @@ package unet.jrtmp.handlers;
 import unet.jrtmp.rtmp.RtmpMessage;
 import unet.jrtmp.rtmp.messages.AudioMessage;
 import unet.jrtmp.rtmp.messages.SetChunkSize;
+import unet.jrtmp.rtmp.messages.UserControlMessageEvent;
 import unet.jrtmp.rtmp.messages.VideoMessage;
 
 import java.io.IOException;
@@ -20,7 +21,7 @@ public class ChunkEncoder {
         this.out = out;
     }
 
-    public void encode(RtmpMessage message){
+    public void encode(RtmpMessage message)throws IOException {
         if(message instanceof SetChunkSize){
             chunkSize = ((SetChunkSize) message).getChunkSize();
         }
@@ -36,7 +37,7 @@ public class ChunkEncoder {
         }
     }
 
-    private void encodeAudio(AudioMessage message){
+    private void encodeAudio(AudioMessage message)throws IOException {
         if(firstAudio){
             encodeWithFmt0And3(message);
             firstAudio = true;
@@ -45,7 +46,7 @@ public class ChunkEncoder {
         encodeWithFmt1(message, message.getTimestampDelta());
     }
 
-    private void encodeVideo(VideoMessage message){
+    private void encodeVideo(VideoMessage message)throws IOException {
         if(firstVideo){
             encodeWithFmt0And3(message);
             firstVideo = true;
@@ -58,87 +59,97 @@ public class ChunkEncoder {
         int outboundCsid = message.getOutboundCsid();
 
         out.write(encodeFmtAndCsid(1, outboundCsid));
-        //buffer.writeBytes(encodeFmtAndCsid(1, outboundCsid));
 
-        out.write(message.encodePayload());
-        out.write(); //timestampDelta - Medium
-        out.write(); //payload length - Medium
+        byte[] payload = message.encodePayload();
+        out.write((byte) ((timestampDelta >> 16) & 0xff));
+        out.write((byte) ((timestampDelta >> 8) & 0xff));
+        out.write((byte) (timestampDelta & 0xff));
+
+        out.write((byte) ((payload.length >> 16) & 0xff));
+        out.write((byte) ((payload.length >> 8) & 0xff));
+        out.write((byte) (payload.length & 0xff));
+
         out.write(message.getMessageType());
 
-        //ByteBuf payload = msg.encodePayload();
-        //buffer.writeMedium(timestampDelta);
-        //buffer.writeMedium(payload.readableBytes());
-        //buffer.writeByte(msg.getMsgType());
-
         boolean fmt1Part = true;
-        while(payload.isReadable()){
-            int min = Math.min(chunkSize, payload.readableBytes());
+        int position = 0;
+        while(position < payload.length){
+            int min = Math.min(chunkSize, payload.length-position);
 
-            if (fmt1Part) {
-                buffer.writeBytes(payload, min);
+            if(fmt1Part){
+                out.write(payload, position, min);
                 fmt1Part = false;
-            } else {
-                byte[] fmt3BasicHeader = encodeFmtAndCsid(Constants.CHUNK_FMT_3, outboundCsid);
-                buffer.writeBytes(fmt3BasicHeader);
-                buffer.writeBytes(payload, min);
-
+            }else{
+                out.write(encodeFmtAndCsid(3, outboundCsid));
+                out.write(payload, position, min);
             }
-            out.writeBytes(buffer);
-            buffer = Unpooled.buffer();
+
+            position += min;
+            //out.write(buffer);
+            //out.write(payload, position, min);
+            //buffer = Unpooled.buffer();
         }
     }
 
-    private void encodeWithFmt0And3(RtmpMessage message){
+    private void encodeWithFmt0And3(RtmpMessage message)throws IOException {
         int csid = message.getOutboundCsid();
 
         byte[] basicHeader = encodeFmtAndCsid(0, csid);
+        out.write(basicHeader);
 
-        // as for control msg ,we always use 0 timestamp
-
-        ByteBuf payload = message.encodePayload();
-        int messageLength = payload.readableBytes();
-        ByteBuf buffer = Unpooled.buffer();
-
-        buffer.writeBytes(basicHeader);
+        byte[] payload = message.encodePayload();
 
         long timestamp = getRelativeTime();
         boolean needExtraTime = false;
-        if (timestamp >= Constants.MAX_TIMESTAMP) {
+        if(timestamp >= 0XFFFFFF){
             needExtraTime = true;
-            buffer.writeMedium(Constants.MAX_TIMESTAMP);
-        } else {
-            buffer.writeMedium((int) timestamp);
+            out.write((byte) 0xFF);
+            out.write((byte) 0xFF);
+            out.write((byte) 0xFF);
+
+        }else{
+            out.write((byte) ((timestamp >> 16) & 0xff));
+            out.write((byte) ((timestamp >> 8) & 0xff));
+            out.write((byte) (timestamp & 0xff));
         }
         // message length
-        buffer.writeMedium(messageLength);
+        out.write((byte) ((payload.length >> 16) & 0xff));
+        out.write((byte) ((payload.length >> 8) & 0xff));
+        out.write((byte) (payload.length & 0xff));
 
-        buffer.writeByte(msg.getMsgType());
-        if (msg instanceof UserControlMessageEvent) {
+        out.write(message.getMessageType());
+        if(message instanceof UserControlMessageEvent){
             // message stream id in UserControlMessageEvent is always 0
-            buffer.writeIntLE(0);
-        } else {
-            buffer.writeIntLE(Constants.DEFAULT_STREAM_ID);
+            out.write(new byte[]{ 0, 0, 0, 0, 0 });
+
+        }else{
+            out.write(new byte[]{ 0, 0, 0, 5 });
         }
 
-        if (needExtraTime) {
-            buffer.writeInt((int) (timestamp));
+        if(needExtraTime){
+            out.write((byte) (0xff & (timestamp >> 24)));
+            out.write((byte) (0xff & (timestamp >> 16)));
+            out.write((byte) (0xff & (timestamp >> 8)));
+            out.write((byte) (0xff & timestamp));
         }
         // split by chunk size
 
         boolean fmt0Part = true;
-        while (payload.isReadable()) {
-            int min = Math.min(chunkSize, payload.readableBytes());
-            if (fmt0Part) {
-                buffer.writeBytes(payload, min);
-                fmt0Part = false;
-            } else {
-                byte[] fmt3BasicHeader = encodeFmtAndCsid(Constants.CHUNK_FMT_3, csid);
-                buffer.writeBytes(fmt3BasicHeader);
-                buffer.writeBytes(payload, min);
+        int position = 0;
+        while(position < payload.length){
+            int min = Math.min(chunkSize, payload.length-position);
 
+            if(fmt0Part){
+                out.write(payload, position, min);
+                fmt0Part = false;
+            }else{
+                out.write(encodeFmtAndCsid(3, csid));
+                out.write(payload, position, min);
             }
-            out.writeBytes(buffer);
-            buffer = Unpooled.buffer();
+
+            position += min;
+            //out.writeBytes(buffer);
+            //buffer = Unpooled.buffer();
         }
     }
 
