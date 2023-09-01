@@ -96,8 +96,6 @@ public class AMF0 {
     */
 
     public static List<Object> decodeAll(ByteBuffer payload){
-        //ByteBuffer buffer = ByteBuffer.wrap(buf);
-        //buffer.order(ByteOrder.BIG_ENDIAN);
         List<Object> result = new ArrayList<>();
 
         while(payload.hasRemaining()){
@@ -110,29 +108,20 @@ public class AMF0 {
     private static Object decode(Types type, ByteBuffer payload){
         switch(type){
             case NUMBER: { //NUMBER
-                    //double d = buffer.getDouble();
-                    double d = Double.longBitsToDouble(payload.getLong()); //readDouble???
-                    System.out.println("NUMBER  "+d);
-                    return d;
-                    //return buffer.getDouble();
+                    return Double.longBitsToDouble(payload.getLong()); //readDouble???
                 }
 
             case BOOLEAN: { //BOOLEAN
-                    boolean b = payload.get() != 0;
-                    System.out.println("BOOLEAN  "+b);
-                    return b;
-                    //return buffer.get() != 0;
+                    return payload.get() != 0;
                 }
 
             case STRING: { //STRING
                     byte[] str = new byte[payload.getShort()];
                     payload.get(str);
-                    System.out.println("STRING  "+new String(str)+"  "+str.length);
                     return new String(str);
                 }
 
             case OBJECT, MAP: { //OBJECT
-                System.out.println("OBJECT");
                     int count;
                     Map<String, Object> map;
 
@@ -174,17 +163,12 @@ public class AMF0 {
                         byte[] str = new byte[size];
                         payload.get(str);
 
-                        byte tb = payload.get();
-                        Types typ = Types.valueToEnum(tb);
-                        System.out.println("KEY  "+new String(str));
-
-                        map.put(new String(str), decode(typ, payload));
+                        map.put(new String(str), decode(Types.valueToEnum(payload.get()), payload));
                     }
                     return map;
                 }
 
             case ARRAY: { //ARRAY
-                System.out.println("ARRAY");
                     Object[] array = new Object[payload.getInt()];
                     for(int i = 0; i < array.length; i++){
                         array[i] = decode(Types.valueToEnum(payload.get()), payload);
@@ -193,14 +177,12 @@ public class AMF0 {
                 }
 
             case DATE: { //DATE
-                System.out.println("DATE");
                     long dateValue = payload.getLong();
                     payload.getShort(); // consume the timezone
                     return new Date((long) Double.longBitsToDouble(dateValue));
                 }
 
             case LONG_STRING: { //LONG STRING
-                System.out.println("LONG STRING");
                     byte[] str = new byte[payload.getInt()];
                     payload.get(str);
                     return new String(str);
@@ -214,115 +196,6 @@ public class AMF0 {
                 throw new UnsupportedOperationException("Unsupported AMF0 type: "+type);
         }
     }
-
-    /*
-    public static Object decode(byte[] in){
-        final Type type = Type.valueToEnum(in.read());
-        final Object value = decode(in, type);
-        return value;
-    }
-
-    public static List<Object> decodeAll(byte[] in){
-        List<Object> result = new ArrayList<>();
-
-        while(in.available() > 0){
-            Object decode = decode(in);
-            result.add(decode);
-        }
-        return result;
-
-    }
-    *./
-
-    private Object decode(){
-        pos++;
-        switch(Type.valueToEnum(buf[pos-1])){
-            case NUMBER:
-                pos += 8;
-                return Double.longBitsToDouble(readLong(buf, pos-8));
-
-            case BOOLEAN:
-                pos++;
-                return buf[pos-1] == BOOLEAN_TRUE;
-
-            case STRING: {
-                    int length = readShort(buf, pos);
-                    pos += 2+length;
-                    return new String(buf, pos-length, length);
-                }
-
-            case ARRAY: {
-                    int arraySize = readInt(buf, pos);
-                    pos += 4;
-                    Object[] array = new Object[arraySize];
-
-                    for(int i = 0; i < arraySize; i++){
-                        array[i] = decode();
-                    }
-                    return array;
-                }
-
-            case MAP:
-
-            case OBJECT: {
-                    int count;
-                    Map<String, Object> map;
-                    /*
-                    if(type == Type.MAP){
-                        count = in.readInt(); // should always be 0
-                        map = new LinkedHashMap<>();
-                        //if(count > 0){
-                        //}
-
-                    }else{
-                    }
-                    *./
-                    count = 0;
-                    map = new AMF0Object();
-
-                    int i = 0;
-                    byte[] endMarker = new byte[3];
-                    while(pos < buf.length){
-                        System.arraycopy(buf, pos, endMarker, 0, endMarker.length);
-                        pos += 4;
-
-                        if(Arrays.equals(endMarker, OBJECT_END_MARKER)){
-                            pos += 3;
-                            break;
-                        }
-
-                        if(count > 0 && i++ == count){
-                            break;
-                        }
-
-                        int length = readShort(buf, pos);
-                        pos += 2+length;
-                        map.put(new String(buf, pos-length, length), decode());
-                    }
-                    return map;
-                }
-
-            case DATE: {
-                    long dateValue = readLong(buf, pos);
-                    readShort(buf, pos+8); // consume the timezone
-                    pos += 10;
-                    return new Date((long) Double.longBitsToDouble(dateValue));
-                }
-
-            case LONG_STRING: {
-                    int length = readInt(buf, pos);
-                    pos += 4+length;
-                    return new String(buf, pos-length, length); // UTF-8 ?
-                }
-
-            case NULL, UNDEFINED, UNSUPPORTED:
-                return null;
-
-            default:
-                throw new RuntimeException("unexpected type: ");
-        }
-    }
-    */
 
     private static String toString(Types type, Object value){
         StringBuilder sb = new StringBuilder();
@@ -345,12 +218,12 @@ public class AMF0 {
         OBJECT(0x03),
         NULL(0x05),
         //UNDEFINED(0x06),
-        MAP(0x08), //ECMA
-        ARRAY(0x0A), //STRICT ARRAY
+        MAP(0x08),
+        ARRAY(0x0A),
         DATE(0x0B),
         LONG_STRING(0x0C),
-        XML_DOCUMENT(0x0F),
-        TYPED_OBJECT(0x10),
+        //XML_DOCUMENT(0x0F),
+        //TYPED_OBJECT(0x10),
         UNSUPPORTED(0x0D);
 
         private int value;
