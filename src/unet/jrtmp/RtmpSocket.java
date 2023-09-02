@@ -70,8 +70,8 @@ public class RtmpSocket extends Thread {
                 // READ HEADER
                 // READ PAYLOAD
 
-                ChunkDecoder chunkDecoder = new ChunkDecoder(in);
-                ChunkEncoder chunkEncoder = new ChunkEncoder(out);
+                chunkDecoder = new ChunkDecoder(in);
+                chunkEncoder = new ChunkEncoder(out);
 
                 RtmpMessage message = chunkDecoder.decode();
 
@@ -118,7 +118,7 @@ public class RtmpSocket extends Thread {
 
 
     //NOT SURE HOW WE ARE DECODING MESSAGE...
-    private void maySendAck(RtmpMessage message){
+    private void maySendAck(RtmpMessage message)throws IOException {
         int receiveBytes = message.getInboundBodyLength()+message.getInboundHeaderLength();
         bytesReceived += receiveBytes;
 
@@ -139,7 +139,7 @@ public class RtmpSocket extends Thread {
         }
     }
 
-    private void handleCommand(RtmpCommandMessage message){
+    private void handleCommand(RtmpCommandMessage message)throws IOException {
         List<Object> command = message.getCommands();
         String commandName = (String) command.get(0);
 
@@ -206,7 +206,7 @@ public class RtmpSocket extends Thread {
 //		}
     }
 
-    private void handleConnect(RtmpCommandMessage message){
+    private void handleConnect(RtmpCommandMessage message)throws IOException {
         // client send connect
         // server reply windows ack size and set peer bandwidth
 
@@ -249,7 +249,7 @@ public class RtmpSocket extends Thread {
         chunkEncoder.encode(response);
     }
 
-    private void handleCreateStream(RtmpCommandMessage message){
+    private void handleCreateStream(RtmpCommandMessage message)throws IOException {
         List<Object> result = new ArrayList<>();
         result.add("_result");
         result.add(message.getCommands().get(1));// transaction id
@@ -260,7 +260,7 @@ public class RtmpSocket extends Thread {
         chunkEncoder.encode(response);
     }
 
-    private void handlePublish(RtmpCommandMessage message){
+    private void handlePublish(RtmpCommandMessage message)throws IOException {
         role = Role.Publisher;
 
         String streamType = (String) message.getCommands().get(4);
@@ -278,7 +278,7 @@ public class RtmpSocket extends Thread {
         chunkEncoder.encode(onStatus);
     }
 
-    private void handlePlay(RtmpCommandMessage message){
+    private void handlePlay(RtmpCommandMessage message)throws IOException {
         role = Role.Subscriber;
 
         String name = (String) message.getCommands().get(3);
@@ -298,7 +298,7 @@ public class RtmpSocket extends Thread {
         }
     }
 
-    private void handleCloseStream(RtmpCommandMessage message){
+    private void handleCloseStream(RtmpCommandMessage message)throws IOException {
         if(role == Role.Subscriber){
             return;
         }
