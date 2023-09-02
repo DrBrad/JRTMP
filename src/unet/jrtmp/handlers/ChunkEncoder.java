@@ -89,6 +89,8 @@ public class ChunkEncoder {
             //out.write(payload, position, min);
             //buffer = Unpooled.buffer();
         }
+
+        out.flush();
     }
 
     private void encodeWithFmt0And3(RtmpMessage message)throws IOException {
@@ -151,6 +153,8 @@ public class ChunkEncoder {
             //out.writeBytes(buffer);
             //buffer = Unpooled.buffer();
         }
+
+        out.flush();
     }
 
     public long getRelativeTime(){

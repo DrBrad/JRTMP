@@ -2,6 +2,7 @@ package unet.jrtmp;
 
 import unet.jrtmp.amf.AMF0Object;
 import unet.jrtmp.handlers.ChunkDecoder;
+import unet.jrtmp.handlers.ChunkEncoder;
 import unet.jrtmp.rtmp.messages.RtmpMessage;
 import unet.jrtmp.rtmp.messages.*;
 import unet.jrtmp.stream.Stream;
@@ -20,8 +21,12 @@ public class RtmpSocket extends Thread {
 
     private Socket socket;
 
-    private InputStream in;
-    private OutputStream out;
+    //private InputStream in;
+    //private OutputStream out;
+
+
+    private ChunkDecoder chunkDecoder;
+    private ChunkEncoder chunkEncoder;
 
     private int ackWindowSize, lastSentbackSize, bytesReceived;
 
@@ -34,8 +39,8 @@ public class RtmpSocket extends Thread {
         try{
             socket.setKeepAlive(true);
 
-            in = socket.getInputStream();
-            out = socket.getOutputStream();
+            InputStream in = socket.getInputStream();
+            OutputStream out = socket.getOutputStream();
 
             /*
             * IT APPEARS THE WAY THIS WORKS IS
@@ -66,7 +71,7 @@ public class RtmpSocket extends Thread {
                 // READ PAYLOAD
 
                 ChunkDecoder chunkDecoder = new ChunkDecoder(in);
-
+                ChunkEncoder chunkEncoder = new ChunkEncoder(out);
 
                 RtmpMessage message = chunkDecoder.decode();
 
@@ -122,8 +127,7 @@ public class RtmpSocket extends Thread {
         }
 
         if(bytesReceived > 0X70000000){
-            out.write(new AcknowledgementMessage(bytesReceived));
-            out.flush();
+            chunkEncoder.encode(new AcknowledgementMessage(bytesReceived));
             bytesReceived = 0;
             lastSentbackSize = 0;
             return;
@@ -131,8 +135,7 @@ public class RtmpSocket extends Thread {
 
         if(bytesReceived - lastSentbackSize >= ackWindowSize){
             lastSentbackSize = bytesReceived;
-            out.write(new AcknowledgementMessage(lastSentbackSize));
-            out.flush();
+            chunkEncoder.encode(new AcknowledgementMessage(lastSentbackSize));
         }
     }
 
@@ -224,9 +227,9 @@ public class RtmpSocket extends Thread {
 
         SetChunkSize setChunkSize = new SetChunkSize(5000);
 
-        ctx.writeAndFlush(was);
-        ctx.writeAndFlush(spb);
-        ctx.writeAndFlush(setChunkSize);
+        chunkEncoder.encode(was);
+        chunkEncoder.encode(spb);
+        chunkEncoder.encode(setChunkSize);
 
         List<Object> result = new ArrayList<>();
         result.add("_result");
@@ -243,7 +246,7 @@ public class RtmpSocket extends Thread {
 
         RtmpCommandMessage response = new RtmpCommandMessage(result);
 
-        ctx.writeAndFlush(response);
+        chunkEncoder.encode(response);
     }
 
     private void handleCreateStream(RtmpCommandMessage message){
@@ -254,8 +257,7 @@ public class RtmpSocket extends Thread {
         result.add(5);// stream id
 
         RtmpCommandMessage response = new RtmpCommandMessage(result);
-
-        ctx.writeAndFlush(response);
+        chunkEncoder.encode(response);
     }
 
     private void handlePublish(RtmpCommandMessage message){
@@ -263,7 +265,7 @@ public class RtmpSocket extends Thread {
 
         String streamType = (String) message.getCommands().get(4);
         if(!streamType.equals("live")){
-            ctx.channel().disconnect();
+            socket.close();
         }
 
         String name = (String) message.getCommands().get(3);
@@ -273,8 +275,7 @@ public class RtmpSocket extends Thread {
         createStream(ctx);
         // reply a onStatus
         RtmpCommandMessage onStatus = onStatus("status", "NetStream.Publish.Start", "Start publishing");
-
-        ctx.writeAndFlush(onStatus);
+        chunkEncoder.encode(onStatus);
     }
 
     private void handlePlay(RtmpCommandMessage message){
@@ -287,11 +288,10 @@ public class RtmpSocket extends Thread {
         if(stream == null){
             // NetStream.Play.StreamNotFound
             RtmpCommandMessage onStatus = onStatus("error", "NetStream.Play.StreamNotFound", "No Such Stream");
-
-            ctx.writeAndFlush(onStatus);
+            chunkEncoder.encode(onStatus);
 
             normalShutdown = true;
-            ctx.channel().close();
+            socket.close();
 
         }else{
             startPlay(ctx, stream);
@@ -305,7 +305,7 @@ public class RtmpSocket extends Thread {
 
         // send back 'NetStream.Unpublish.Success' to publisher
         RtmpCommandMessage onStatus = onStatus("status", "NetStream.Unpublish.Success", "Stop publishing");
-        ctx.write(onStatus);
+        chunkEncoder.encode(onStatus);
         // send User Control Message Stream EOF (1) to all subscriber
         // and we close all publisher and subscribers
         Stream stream = streamManager.getStream(streamName);
@@ -314,7 +314,21 @@ public class RtmpSocket extends Thread {
             stream.sendEofToAllSubscriberAndClose();
             streamManager.remove(streamName);
             normalShutdown = true;
-            ctx.close();
+            socket.close();
         }
+    }
+
+    private RtmpCommandMessage onStatus(String level, String code, String description){
+        List<Object> result = new ArrayList<>();
+        result.add("onStatus");
+        result.add(0);// always 0
+        result.add(null);// properties
+        result.add(new AMF0Object()
+                .addProperty("level", level)
+                .addProperty("code", code)
+                .addProperty("description", description));// stream id
+
+        RtmpCommandMessage response = new RtmpCommandMessage(result);
+        return response;
     }
 }
