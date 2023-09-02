@@ -1,95 +1,79 @@
 package unet.jrtmp.amf;
 
-import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.*;
 
 public class AMF0 {
 
-    //private static final byte[] OBJECT_END_MARKER = new byte[]{ 0x00, 0x00, 0x09 };
-
-    public static void encode(OutputStream out, Object value){
-
-    }
-
-    /*
-    public static void encode(OutputStream out, Object value)throws IOException {
-        Type type = Type.getType(value);
-        out.write((byte) type.value);
+    public static void encode(ByteBuffer out, Object value){
+        Types type = Types.getType(value);
+        out.put((byte) type.value);
 
         switch(type){
             case NUMBER:
                 if(value instanceof Double){
-                    out.writeLong(Double.doubleToLongBits((Double) value));
+                    out.putLong(Double.doubleToLongBits((Double) value));
 
                 }else{ // this coverts int also
-                    out.writeLong(Double.doubleToLongBits(Double.valueOf(value.toString())));
+                    out.putLong(Double.doubleToLongBits(Double.valueOf(value.toString())));
                 }
                 return;
 
             case BOOLEAN:
-                out.write((Boolean) value ? BOOLEAN_TRUE : BOOLEAN_FALSE);
+                out.put((byte) ((Boolean) value ? 0x01 : 0x00));
                 return;
 
-            case STRING:
-                encodeString(out, (String) value);
-                return;
+            case STRING: {
+                    byte[] bytes = ((String) value).getBytes();
+                    out.putShort((short) bytes.length);
+                    out.put(bytes);
+                    return;
+                }
 
             case NULL:
                 return;
 
             case MAP:
-                out.write(new byte[]{
-                        (byte) (0xff & (0 >> 24)),
-                        (byte) (0xff & (0 >> 16)),
-                        (byte) (0xff & (0 >> 8)),
-                        (byte) (0xff & 0)
-                });
+                out.putInt(0);
                 // no break; remaining processing same as OBJECT
 
-            case OBJECT:
-                final Map<String, Object> map = (Map) value;
-                for (final Map.Entry<String, Object> entry : map.entrySet()) {
-                    encodeString(out, entry.getKey());
-                    encode(out, entry.getValue());
+            case OBJECT: {
+                    Map<String, Object> map = (Map) value;
+                    for(Map.Entry<String, Object> entry : map.entrySet()){
+                        byte[] bytes = entry.getKey().getBytes();
+                        out.putShort((short) bytes.length);
+                        out.put(bytes);
+
+                        encode(out, entry.getValue());
+                    }
+                    out.put(new byte[]{ 0x00, 0x00, 0x09 });
+                    return;
                 }
-                out.writeBytes(OBJECT_END_MARKER);
-                return;
 
             case ARRAY:
-                final Object[] array = (Object[]) value;
-                out.writeInt(array.length);
-                for (Object o : array) {
+                Object[] array = (Object[]) value;
+                out.putInt(array.length);
+                for(Object o : array){
                     encode(out, o);
                 }
                 return;
 
             case DATE:
-                final long time = ((Date) value).getTime();
-                out.writeLong(Double.doubleToLongBits(time));
-                out.writeShort((short) 0);
+                long time = ((Date) value).getTime();
+                out.putLong(Double.doubleToLongBits(time));
+                out.putShort((short) 0);
                 return;
 
             default:
-                // ignoring other types client doesn't require for now
                 throw new RuntimeException("unexpected type: " + type);
         }
     }
 
-
-    private static void encodeString(OutputStream out, String value){
-        byte[] bytes = value.getBytes(); // UTF-8 ?
-        out.writeShort((short) bytes.length);
-        out.writeBytes(bytes);
-    }
-
-    public static void encode(OutputStream out, List<Object> values){
+    public static void encode(ByteBuffer out, List<Object> values){
         for(Object value : values){
             encode(out, value);
         }
     }
-
-    */
 
     public static List<Object> decodeAll(ByteBuffer payload){
         List<Object> result = new ArrayList<>();

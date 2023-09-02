@@ -71,10 +71,7 @@ public class ChunkDecoder {
         currentPayload.flip();
         RtmpMessage message = RtmpMessageDecoder.decode(prevousHeaders.get(currentCsid), currentPayload);
 
-        System.out.println("MESSAGE TYPE: "+message.getMessageType());
-
         if(message == null){
-            System.out.println("NULL");
             return null;
         }
 
@@ -82,7 +79,7 @@ public class ChunkDecoder {
             SetChunkSize scs = (SetChunkSize) message;
             clientChunkSize = scs.getChunkSize();
             //return message;
-            return decode();
+            //return decode();
         }//else{
             //out.add(message);
         //}

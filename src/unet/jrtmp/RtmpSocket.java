@@ -100,8 +100,6 @@ public class RtmpSocket extends Thread {
 
                     }else if(message instanceof UserControlMessageEvent){
                         handleUserControl((UserControlMessageEvent) message);
-
-                    //}else{
                     }
                 }
             }

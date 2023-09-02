@@ -1,5 +1,8 @@
 package unet.jrtmp.rtmp.messages;
 
+import unet.jrtmp.amf.AMF0;
+
+import java.nio.ByteBuffer;
 import java.util.List;
 
 public class RtmpCommandMessage extends RtmpMessage {
@@ -22,12 +25,12 @@ public class RtmpCommandMessage extends RtmpMessage {
 
     @Override
     public byte[] encodePayload(){
-        /*
-        ByteBuf buffer = Unpooled.buffer();
+        ByteBuffer buffer = ByteBuffer.allocate(1024);
 		AMF0.encode(buffer, command);
-		return buffer;
-        */
-        return new byte[0];
+        byte[] b = new byte[buffer.position()];
+        buffer.rewind();
+        buffer.get(b);
+		return b;
     }
 
     public List<Object> getCommands(){

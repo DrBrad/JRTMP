@@ -1,5 +1,8 @@
 package unet.jrtmp.rtmp.messages;
 
+import unet.jrtmp.amf.AMF0;
+
+import java.nio.ByteBuffer;
 import java.util.List;
 
 public class RtmpDataMessage extends RtmpMessage {
@@ -22,11 +25,11 @@ public class RtmpDataMessage extends RtmpMessage {
 
     @Override
     public byte[] encodePayload(){
-        /*
-        ByteBuf buffer = Unpooled.buffer();
+        ByteBuffer buffer = ByteBuffer.allocate(1024);
         AMF0.encode(buffer, data);
-        return buffer;
-        */
+        byte[] b = new byte[buffer.position()];
+        buffer.rewind();
+        buffer.get(b);
         return new byte[0];
     }
 
