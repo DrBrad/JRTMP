@@ -73,40 +73,37 @@ public class RtmpSocket extends Thread {
                 chunkDecoder = new ChunkDecoder(in);
                 chunkEncoder = new ChunkEncoder(out);
 
-                RtmpMessage message = chunkDecoder.decode();
+                while(socket.isConnected()){
+                    RtmpMessage message = chunkDecoder.decode();
+                    maySendAck(message);
 
+                    /*
+                    if (!(msg instanceof VideoMessage || msg instanceof AudioMessage)) {
+                        log.info("RTMP_Message_Read : {}", msg);
+                    }
+                    */
 
-                maySendAck(message);
-                /*
-                if (!(msg instanceof VideoMessage || msg instanceof AudioMessage)) {
-                    log.info("RTMP_Message_Read : {}", msg);
+                    if(message instanceof WindowAcknowledgementSize){
+                        int ackSize = ((WindowAcknowledgementSize) message).getWindowSize();
+                        ackWindowSize = ackSize;
+                        return;
+                    }
+
+                    if(message instanceof RtmpCommandMessage){
+                        handleCommand((RtmpCommandMessage) message);
+
+                    }else if(message instanceof RtmpDataMessage){
+                        handleDataMessage((RtmpDataMessage) message);
+
+                    }else if(message instanceof RtmpMediaMessage){
+                        handleMedia((RtmpMediaMessage) message);
+
+                    }else if(message instanceof UserControlMessageEvent){
+                        handleUserControl((UserControlMessageEvent) message);
+
+                    //}else{
+                    }
                 }
-                */
-                if(message instanceof WindowAcknowledgementSize){
-                    int ackSize = ((WindowAcknowledgementSize) message).getWindowSize();
-                    ackWindowSize = ackSize;
-                    return;
-                }
-
-                if(message instanceof RtmpCommandMessage){
-                    handleCommand((RtmpCommandMessage) message);
-
-                }else if(message instanceof RtmpDataMessage){
-                    handleDataMessage((RtmpDataMessage) message);
-
-                }else if(message instanceof RtmpMediaMessage){
-                    handleMedia((RtmpMediaMessage) message);
-
-                }else if(message instanceof UserControlMessageEvent){
-                    handleUserControl((UserControlMessageEvent) message);
-                }
-
-
-                //ENCODE...
-
-
-                //ChunkEncoder chunkEncoder = new ChunkEncoder(out);
-                //chunkEncoder.encode();
             }
 
             socket.close();
@@ -179,22 +176,22 @@ public class RtmpSocket extends Thread {
 
             String encoder = (String) properties.get("encoder");
             if(encoder != null && encoder.contains("obs")){
-                streamName.setObsClient(true);
+                //streamName.setObsClient(true);
             }
 
-            Stream stream = streamManager.getStream(streamName);
-            stream.setMetadata(properties);
+            //Stream stream = streamManager.getStream(streamName);
+            //stream.setMetadata(properties);
         }
     }
 
     private void handleMedia(RtmpMediaMessage message){
-        Stream stream = streamManager.getStream(streamName);
+        //Stream stream = streamManager.getStream(streamName);
 
-        if(stream == null){
-            return;
-        }
+        //if(stream == null){
+        //    return;
+        //}
 
-        stream.addContent(msg);
+        //stream.addContent(msg);
     }
 
     private void handleUserControl(UserControlMessageEvent message){
@@ -261,7 +258,7 @@ public class RtmpSocket extends Thread {
     }
 
     private void handlePublish(RtmpCommandMessage message)throws IOException {
-        role = Role.Publisher;
+        //role = Role.Publisher;
 
         String streamType = (String) message.getCommands().get(4);
         if(!streamType.equals("live")){
@@ -269,53 +266,53 @@ public class RtmpSocket extends Thread {
         }
 
         String name = (String) message.getCommands().get(3);
-        streamName.setName(name);
-        streamName.setApp(streamType);
+        //streamName.setName(name);
+        //streamName.setApp(streamType);
 
-        createStream(ctx);
+        //createStream(ctx);
         // reply a onStatus
         RtmpCommandMessage onStatus = onStatus("status", "NetStream.Publish.Start", "Start publishing");
         chunkEncoder.encode(onStatus);
     }
 
     private void handlePlay(RtmpCommandMessage message)throws IOException {
-        role = Role.Subscriber;
+        //role = Role.Subscriber;
 
-        String name = (String) message.getCommands().get(3);
-        streamName.setName(name);
+        //String name = (String) message.getCommands().get(3);
+        //streamName.setName(name);
 
-        Stream stream = streamManager.getStream(streamName);
-        if(stream == null){
+        //Stream stream = streamManager.getStream(streamName);
+        //if(stream == null){
             // NetStream.Play.StreamNotFound
-            RtmpCommandMessage onStatus = onStatus("error", "NetStream.Play.StreamNotFound", "No Such Stream");
-            chunkEncoder.encode(onStatus);
+            //RtmpCommandMessage onStatus = onStatus("error", "NetStream.Play.StreamNotFound", "No Such Stream");
+            //chunkEncoder.encode(onStatus);
 
-            normalShutdown = true;
-            socket.close();
+            //normalShutdown = true;
+            //socket.close();
 
-        }else{
-            startPlay(ctx, stream);
-        }
+        //}else{
+            //startPlay(ctx, stream);
+        //}
     }
 
     private void handleCloseStream(RtmpCommandMessage message)throws IOException {
-        if(role == Role.Subscriber){
-            return;
-        }
+        //if(role == Role.Subscriber){
+        //    return;
+        //}
 
         // send back 'NetStream.Unpublish.Success' to publisher
         RtmpCommandMessage onStatus = onStatus("status", "NetStream.Unpublish.Success", "Stop publishing");
         chunkEncoder.encode(onStatus);
         // send User Control Message Stream EOF (1) to all subscriber
         // and we close all publisher and subscribers
-        Stream stream = streamManager.getStream(streamName);
+        //Stream stream = streamManager.getStream(streamName);
 
-        if(stream != null){
-            stream.sendEofToAllSubscriberAndClose();
-            streamManager.remove(streamName);
-            normalShutdown = true;
+        //if(stream != null){
+            //stream.sendEofToAllSubscriberAndClose();
+            //streamManager.remove(streamName);
+            //normalShutdown = true;
             socket.close();
-        }
+        //}
     }
 
     private RtmpCommandMessage onStatus(String level, String code, String description){

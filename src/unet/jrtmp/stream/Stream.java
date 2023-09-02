@@ -3,6 +3,7 @@ package unet.jrtmp.stream;
 import unet.jrtmp.amf.AMF0;
 import unet.jrtmp.rtmp.messages.AudioMessage;
 import unet.jrtmp.rtmp.messages.RtmpMediaMessage;
+import unet.jrtmp.rtmp.messages.RtmpMessage;
 import unet.jrtmp.rtmp.messages.VideoMessage;
 
 import java.io.File;
@@ -13,136 +14,121 @@ import java.util.*;
 
 public class Stream {
 
-    static byte[] flvHeader = new byte[]{ 0x46, 0x4C, 0x56, 0x01, 0x05, 00, 00, 00, 0x09 };
+    /*
+    private static byte[] flvHeader = new byte[]{ 0x46, 0x4C, 0x56, 0x01, 0x05, 00, 00, 00, 0x09 };
+    private Map<String, Object> metadata;
+    private Channel publisher;
+    private VideoMessage avcDecoderConfigurationRecord;
+    private AudioMessage aacAudioSpecificConfig;
+    private Set<Channel> subscribers, httpFLvSubscribers;
+    private List<RtmpMediaMessage> content;
+    private StreamName streamName;
+    private int videoTimestamp, audioTimestamp, obsTimeStamp;
+    private FileOutputStream flvout;
+    private boolean flvHeadAndMetadataWritten = false;
 
-    Map<String, Object> metadata;
-
-    Channel publisher;
-
-    VideoMessage avcDecoderConfigurationRecord;
-
-    AudioMessage aacAudioSpecificConfig;
-    Set<Channel> subscribers;
-
-    List<RtmpMediaMessage> content;
-
-    StreamName streamName;
-
-    int videoTimestamp;
-    int audioTimestamp;
-
-    int obsTimeStamp;
-
-    FileOutputStream flvout;
-    boolean flvHeadAndMetadataWritten = false;
-
-    Set<Channel> httpFLvSubscribers;
-
-    public Stream(StreamName streamName) {
+    public Stream(StreamName streamName){
         subscribers = new LinkedHashSet<>();
         httpFLvSubscribers = new LinkedHashSet<>();
         content = new ArrayList<>();
         this.streamName = streamName;
-        if (MyLiveConfig.INSTANCE.isSaveFlvFile()) {
+
+        if(MyLiveConfig.INSTANCE.isSaveFlvFile()){
             createFileStream();
         }
     }
 
-    public synchronized void addContent(RtmpMediaMessage msg) {
-
-        if (streamName.isObsClient()) {
-            handleObsStream(msg);
-        } else {
-            handleNonObsStream(msg);
+    public synchronized void addContent(RtmpMediaMessage message){
+        if(streamName.isObsClient()){
+            handleObsStream(message);
+        }else{
+            handleNonObsStream(message);
         }
 
-        if(msg instanceof VideoMessage) {
-            VideoMessage vm=(VideoMessage)msg;
-            if (vm.isAVCDecoderConfigurationRecord()) {
-                log.info("avcDecoderConfigurationRecord  ok");
+        if(message instanceof VideoMessage){
+            VideoMessage vm=(VideoMessage)message;
+            if(vm.isAVCDecoderConfigurationRecord()){
+                //log.info("avcDecoderConfigurationRecord  ok");
                 avcDecoderConfigurationRecord = vm;
             }
 
-            if (vm.isH264KeyFrame()) {
-                log.debug("video key frame in stream :{}", streamName);
+            if(vm.isH264KeyFrame()){
+                //log.debug("video key frame in stream :{}", streamName);
                 content.clear();
             }
         }
 
-        if(msg instanceof AudioMessage) {
-            AudioMessage am=(AudioMessage) msg;
-            if (am.isAACAudioSpecificConfig()) {
+        if(message instanceof AudioMessage){
+            AudioMessage am=(AudioMessage) message;
+            if(am.isAACAudioSpecificConfig()){
                 aacAudioSpecificConfig = am;
             }
         }
 
 
-        content.add(msg);
-        if (MyLiveConfig.INSTANCE.isSaveFlvFile()) {
-            writeFlv(msg);
+        content.add(message);
+        if(MyLiveConfig.INSTANCE.isSaveFlvFile()){
+            writeFlv(message);
         }
-        broadCastToSubscribers(msg);
+        broadCastToSubscribers(message);
     }
 
-    private void handleNonObsStream(RtmpMediaMessage msg) {
-        if (msg instanceof VideoMessage) {
-            VideoMessage vm = (VideoMessage) msg;
-            if (vm.getTimestamp() != null) {
+    private void handleNonObsStream(RtmpMediaMessage message){
+        if(message instanceof VideoMessage){
+            VideoMessage vm = (VideoMessage) message;
+            if(vm.getTimestamp() != null){
                 // we may encode as FMT1 ,so we need timestamp delta
                 vm.setTimestampDelta(vm.getTimestamp() - videoTimestamp);
                 videoTimestamp = vm.getTimestamp();
-            } else if (vm.getTimestampDelta() != null) {
+            }else if(vm.getTimestampDelta() != null){
                 videoTimestamp += vm.getTimestampDelta();
                 vm.setTimestamp(videoTimestamp);
             }
-
-
         }
 
-        if (msg instanceof AudioMessage) {
-
-            AudioMessage am = (AudioMessage) msg;
-            if (am.getTimestamp() != null) {
+        if(message instanceof AudioMessage){
+            AudioMessage am = (AudioMessage) message;
+            if(am.getTimestamp() != null){
                 am.setTimestampDelta(am.getTimestamp() - audioTimestamp);
                 audioTimestamp = am.getTimestamp();
-            } else if (am.getTimestampDelta() != null) {
+            }else if(am.getTimestampDelta() != null){
                 audioTimestamp += am.getTimestampDelta();
                 am.setTimestamp(audioTimestamp);
             }
-
-
         }
     }
 
-    private void handleObsStream(RtmpMediaMessage msg) {
+    private void handleObsStream(RtmpMediaMessage message){
         // OBS rtmp stream is different from FFMPEG
         // it's timestamp_delta is delta of last packet,not same type of last packet
 
         // flv only require an absolute timestamp
         // but rtmp client like vlc require a timestamp-delta,which is relative to last
         // same media packet.
-        if(msg.getTimestamp()!=null) {
-            obsTimeStamp=msg.getTimestamp();
-        }else		if(msg.getTimestampDelta()!=null) {
-            obsTimeStamp += msg.getTimestampDelta();
+        if(message.getTimestamp() != null){
+            obsTimeStamp=message.getTimestamp();
+
+        }else if(message.getTimestampDelta() != null){
+            obsTimeStamp += message.getTimestampDelta();
         }
-        msg.setTimestamp(obsTimeStamp);
-        if (msg instanceof VideoMessage) {
-            msg.setTimestampDelta(obsTimeStamp - videoTimestamp);
+
+        message.setTimestamp(obsTimeStamp);
+        if(message instanceof VideoMessage){
+            message.setTimestampDelta(obsTimeStamp - videoTimestamp);
             videoTimestamp = obsTimeStamp;
         }
-        if (msg instanceof AudioMessage) {
-            msg.setTimestampDelta(obsTimeStamp - audioTimestamp);
+        if(message instanceof AudioMessage){
+            message.setTimestampDelta(obsTimeStamp - audioTimestamp);
             audioTimestamp = obsTimeStamp;
         }
     }
 
-    private byte[] encodeMediaAsFlvTagAndPrevTagSize(RtmpMediaMessage msg) {
-        int tagType = msg.getMsgType();
-        byte[] data = msg.raw();
+    private byte[] encodeMediaAsFlvTagAndPrevTagSize(RtmpMediaMessage message){
+        int tagType = message.getMessageType();
+        byte[] data = message.raw();
         int dataSize = data.length;
-        int timestamp = msg.getTimestamp() & 0xffffff;
-        int timestampExtended = ((msg.getTimestamp() & 0xff000000) >> 24);
+        int timestamp = message.getTimestamp() & 0xffffff;
+        int timestampExtended = ((message.getTimestamp() & 0xff000000) >> 24);
 
         ByteBuf buffer = Unpooled.buffer();
 
@@ -160,32 +146,31 @@ public class Stream {
         return r;
     }
 
-    private void writeFlv(RtmpMediaMessage msg) {
-        if (flvout == null) {
-            log.error("no flv file existed for stream : {}", streamName);
+    private void writeFlv(RtmpMediaMessage message){
+        if(flvout == null){
             return;
         }
-        try {
-            if (!flvHeadAndMetadataWritten) {
+        try{
+            if(!flvHeadAndMetadataWritten){
                 writeFlvHeaderAndMetadata();
                 flvHeadAndMetadataWritten = true;
             }
-            byte[] encodeMediaAsFlv = encodeMediaAsFlvTagAndPrevTagSize(msg);
+            byte[] encodeMediaAsFlv = encodeMediaAsFlvTagAndPrevTagSize(message);
             flvout.write(encodeMediaAsFlv);
             flvout.flush();
 
-        } catch (IOException e) {
-            log.error("writting flv file failed , stream is :{}", streamName, e);
+        }catch(IOException e){
+            e.printStackTrace();
         }
     }
 
-    private byte[] encodeFlvHeaderAndMetadata() {
+    private byte[] encodeFlvHeaderAndMetadata(){
         ByteBuf encodeMetaData = encodeMetaData();
         ByteBuf buf = Unpooled.buffer();
 
-        RtmpMediaMessage msg = content.get(0);
-        int timestamp = msg.getTimestamp() & 0xffffff;
-        int timestampExtended = ((msg.getTimestamp() & 0xff000000) >> 24);
+        RtmpMediaMessage message = content.get(0);
+        int timestamp = message.getTimestamp() & 0xffffff;
+        int timestampExtended = ((message.getTimestamp() & 0xff000000) >> 24);
 
         buf.writeBytes(flvHeader);
         buf.writeInt(0); // previousTagSize0
@@ -208,14 +193,14 @@ public class Stream {
 
     }
 
-    private void writeFlvHeaderAndMetadata() throws IOException {
+    private void writeFlvHeaderAndMetadata()throws IOException {
         byte[] encodeFlvHeaderAndMetadata = encodeFlvHeaderAndMetadata();
         flvout.write(encodeFlvHeaderAndMetadata);
         flvout.flush();
 
     }
 
-    private ByteBuf encodeMetaData() {
+    private ByteBuf encodeMetaData(){
         ByteBuf buffer = Unpooled.buffer();
         List<Object> meta = new ArrayList<>();
         meta.add("onMetaData");
@@ -226,37 +211,30 @@ public class Stream {
         return buffer;
     }
 
-    private void createFileStream() {
-        File f = new File(
-                MyLiveConfig.INSTANCE.getSaveFlVFilePath() + "/" + streamName.getApp() + "_" + streamName.getName());
-        try {
+    private void createFileStream(){
+        File f = new File(MyLiveConfig.INSTANCE.getSaveFlVFilePath() + "/" + streamName.getApp() + "_" + streamName.getName());
+        try{
             FileOutputStream fos = new FileOutputStream(f);
 
             flvout = fos;
 
-        } catch (IOException e) {
-            log.error("create file : {} failed", e);
-
+        }catch(IOException e){
+            e.printStackTrace();
         }
-
     }
 
-    public synchronized void addSubscriber(Channel channel) {
+    public synchronized void addSubscriber(Channel channel){
         subscribers.add(channel);
-        log.info("subscriber : {} is added to stream :{}", channel, streamName);
         avcDecoderConfigurationRecord.setTimestamp(content.get(0).getTimestamp());
-        log.info("avcDecoderConfigurationRecord:{}", avcDecoderConfigurationRecord);
         channel.writeAndFlush(avcDecoderConfigurationRecord);
 
-        for (RtmpMessage msg : content) {
-            channel.writeAndFlush(msg);
+        for(RtmpMessage message : content){
+            channel.writeAndFlush(message);
         }
-
     }
 
-    public synchronized void addHttpFlvSubscriber(Channel channel) {
+    public synchronized void addHttpFlvSubscriber(Channel channel){
         httpFLvSubscribers.add(channel);
-        log.info("http flv subscriber : {} is added to stream :{}", channel, streamName);
 
         // 1. write flv header and metaData
         byte[] meta = encodeFlvHeaderAndMetadata();
@@ -268,40 +246,40 @@ public class Stream {
         channel.writeAndFlush(Unpooled.wrappedBuffer(config));
 
         // 3. write aacAudioSpecificConfig
-        if (aacAudioSpecificConfig != null) {
+        if(aacAudioSpecificConfig != null){
             aacAudioSpecificConfig.setTimestamp(content.get(0).getTimestamp());
             byte[] aac = encodeMediaAsFlvTagAndPrevTagSize(aacAudioSpecificConfig);
             channel.writeAndFlush(Unpooled.wrappedBuffer(aac));
         }
         // 4. write content
 
-        for (RtmpMediaMessage msg : content) {
-            channel.writeAndFlush(Unpooled.wrappedBuffer(encodeMediaAsFlvTagAndPrevTagSize(msg)));
+        for(RtmpMediaMessage message : content){
+            channel.writeAndFlush(Unpooled.wrappedBuffer(encodeMediaAsFlvTagAndPrevTagSize(message)));
         }
 
     }
 
-    private synchronized void broadCastToSubscribers(RtmpMediaMessage msg) {
+    private synchronized void broadCastToSubscribers(RtmpMediaMessage message){
         Iterator<Channel> iterator = subscribers.iterator();
-        while (iterator.hasNext()) {
+        while(iterator.hasNext()){
             Channel next = iterator.next();
-            if (next.isActive()) {
-                next.writeAndFlush(msg);
-            } else {
+            if(next.isActive()){
+                next.writeAndFlush(message);
+            }else{
                 iterator.remove();
             }
         }
 
-        if (!httpFLvSubscribers.isEmpty()) {
-            byte[] encoded = encodeMediaAsFlvTagAndPrevTagSize(msg);
+        if(!httpFLvSubscribers.isEmpty()){
+            byte[] encoded = encodeMediaAsFlvTagAndPrevTagSize(message);
 
             Iterator<Channel> httpIte = httpFLvSubscribers.iterator();
-            while (httpIte.hasNext()) {
+            while(httpIte.hasNext()){
                 Channel next = httpIte.next();
                 ByteBuf wrappedBuffer = Unpooled.wrappedBuffer(encoded);
-                if (next.isActive()) {
+                if(next.isActive()){
                     next.writeAndFlush(wrappedBuffer);
-                } else {
+                }else{
                     log.info("http channel :{} is not active remove", next);
                     httpIte.remove();
                 }
@@ -311,24 +289,25 @@ public class Stream {
 
     }
 
-    public synchronized void sendEofToAllSubscriberAndClose() {
-        if (MyLiveConfig.INSTANCE.isSaveFlvFile() && flvout != null) {
-            try {
+    public synchronized void sendEofToAllSubscriberAndClose(){
+        if(MyLiveConfig.INSTANCE.isSaveFlvFile() && flvout != null){
+            try{
                 flvout.flush();
                 flvout.close();
-            } catch (IOException e) {
-                log.error("close file:{} failed", flvout);
+            }catch(IOException e){
+                e.printStackTrace();
             }
         }
-        for (Channel sc : subscribers) {
+        for(Channel sc : subscribers){
             sc.writeAndFlush(UserControlMessageEvent.streamEOF(Constants.DEFAULT_STREAM_ID))
                     .addListener(ChannelFutureListener.CLOSE);
 
         }
 
-        for (Channel sc : httpFLvSubscribers) {
+        for(Channel sc : httpFLvSubscribers){
             sc.writeAndFlush(DefaultLastHttpContent.EMPTY_LAST_CONTENT).addListener(ChannelFutureListener.CLOSE);
 
         }
     }
+    */
 }

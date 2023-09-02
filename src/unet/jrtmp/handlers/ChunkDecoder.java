@@ -49,7 +49,7 @@ public class ChunkDecoder {
             inCompletePayload.put(header.getCsid(), currentPayload);
         }
 
-        System.out.println(header);
+        //System.out.println(header);
 
         //System.out.println(in.available()+"  "+payloadPosition);
 
@@ -59,9 +59,11 @@ public class ChunkDecoder {
         //int length = in.read(currentPayload, 0, Math.min(currentPayload.remaining(), clientChunkSize));
         //payloadPosition += length; //WE NEED TO FIGURE OUT WHAT TO DO WITH THIS...
 
+        System.out.println("HEADER: "+header+"  "+in.available());
+
         if(currentPayload.hasRemaining()){
-            decode();
-            return null;
+            return decode();
+            //return null;
         }
 
         inCompletePayload.remove(currentCsid);
@@ -69,17 +71,22 @@ public class ChunkDecoder {
         currentPayload.flip();
         RtmpMessage message = RtmpMessageDecoder.decode(prevousHeaders.get(currentCsid), currentPayload);
 
+        System.out.println("MESSAGE TYPE: "+message.getMessageType());
+
         if(message == null){
+            System.out.println("NULL");
             return null;
         }
 
         if(message instanceof SetChunkSize){
             SetChunkSize scs = (SetChunkSize) message;
             clientChunkSize = scs.getChunkSize();
-            return null;
+            //return message;
+            return decode();
         }//else{
             //out.add(message);
         //}
+
         return message;
     }
 
