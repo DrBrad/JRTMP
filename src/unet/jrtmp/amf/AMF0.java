@@ -88,7 +88,7 @@ public class AMF0 {
     private static Object decode(Types type, ByteBuffer payload){
         switch(type){
             case NUMBER: { //NUMBER
-                    return Double.longBitsToDouble(payload.getLong()); //readDouble???
+                    return payload.getDouble();//Double.longBitsToDouble(payload.getLong()); //readDouble???
                 }
 
             case BOOLEAN: { //BOOLEAN
