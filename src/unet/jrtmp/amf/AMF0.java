@@ -82,6 +82,18 @@ public class AMF0 {
             result.add(decode(Types.valueToEnum(payload.get()), payload));
         }
 
+        for(Object r : result){
+            if(r == null){
+                continue;
+            }
+
+            System.out.println(r.toString());
+        }
+
+        System.out.println();
+        System.out.println();
+        System.out.println();
+
         return result;
     }
 
@@ -129,15 +141,16 @@ public class AMF0 {
                         buffer.position(buffer.position()-3);
                         */
 
-                        if(count > 0 && i++ == count){
-                            break;
-                        }
-
                         short size = payload.getShort();
                         if(size == 0){
                             if(payload.get() == 0x09){
+                                //payload.position((payload.remaining() > 2) ? payload.position()+3 : payload.remaining());
                                 break;
                             }
+                        }
+
+                        if(count > 0 && i++ == count){
+                            break;
                         }
 
                         byte[] str = new byte[size];
@@ -145,6 +158,7 @@ public class AMF0 {
 
                         map.put(new String(str), decode(Types.valueToEnum(payload.get()), payload));
                     }
+
                     return map;
                 }
 

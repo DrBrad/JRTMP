@@ -59,8 +59,6 @@ public class ChunkDecoder {
         //int length = in.read(currentPayload, 0, Math.min(currentPayload.remaining(), clientChunkSize));
         //payloadPosition += length; //WE NEED TO FIGURE OUT WHAT TO DO WITH THIS...
 
-        System.out.println("HEADER: "+header+"  "+in.available());
-
         if(currentPayload.hasRemaining()){
             return decode();
             //return null;
