@@ -101,6 +101,9 @@ public class Stream {
             }
         }
 
+
+        //NOT SO FUCKING SIMPLE.......... - AUDIO AND VIDEO ARE DIFFERENT.... 9 = VIDEO 8 = AUDIO
+
         packetManager.add(message.raw());
         //content.add(message);
 
