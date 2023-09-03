@@ -2,7 +2,7 @@ package unet.jrtmp.rtmp.messages;
 
 public abstract class RtmpMediaMessage extends RtmpMessage {
 
-    private int timestamp, timestampDelta;
+    private int timestamp = -1, timestampDelta = -1;
 
     public abstract byte[] raw();
 

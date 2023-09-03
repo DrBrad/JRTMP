@@ -5,6 +5,9 @@ import unet.jrtmp.handlers.ChunkDecoder;
 import unet.jrtmp.handlers.ChunkEncoder;
 import unet.jrtmp.rtmp.messages.RtmpMessage;
 import unet.jrtmp.rtmp.messages.*;
+import unet.jrtmp.stream.Stream;
+import unet.jrtmp.stream.StreamManager;
+import unet.jrtmp.stream.StreamName;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -19,18 +22,20 @@ import static unet.jrtmp.handlers.HandShakeDecoder.startHandshake;
 public class RtmpSocket extends Thread {
 
     private Socket socket;
+    private StreamManager streamManager;
 
-    //private InputStream in;
-    //private OutputStream out;
+    //IT WOULD PROBABLY BE BETTER TO JUST STORE THE STREAM HERE...
 
 
     private ChunkDecoder chunkDecoder;
     private ChunkEncoder chunkEncoder;
 
+    private StreamName streamName;
     private int ackWindowSize, lastSentbackSize, bytesReceived;
 
-    public RtmpSocket(Socket socket){
+    public RtmpSocket(Socket socket, StreamManager streamManager){
         this.socket = socket;
+        this.streamManager = streamManager;
     }
 
     @Override
@@ -173,22 +178,22 @@ public class RtmpSocket extends Thread {
 
             String encoder = (String) properties.get("encoder");
             if(encoder != null && encoder.contains("obs")){
-                //streamName.setObsClient(true);
+                streamName.setObsClient(true);
             }
 
-            //Stream stream = streamManager.getStream(streamName);
-            //stream.setMetadata(properties);
+            Stream stream = streamManager.get(streamName);
+            stream.setMetadata(properties);
         }
     }
 
     private void handleMedia(RtmpMediaMessage message){
-        //Stream stream = streamManager.getStream(streamName);
+        Stream stream = streamManager.get(streamName);
 
-        //if(stream == null){
-        //    return;
-        //}
+        if(stream == null){
+            return;
+        }
 
-        //stream.addContent(msg);
+        stream.add(message);
     }
 
     private void handleUserControl(UserControlMessageEvent message){
@@ -212,7 +217,7 @@ public class RtmpSocket extends Thread {
             return;
         }
 
-        //streamName = new StreamName(app, null,false);
+        streamName = new StreamName(app);
 
         int ackSize = 5000000;
         WindowAcknowledgementSize was = new WindowAcknowledgementSize(ackSize);
@@ -263,10 +268,13 @@ public class RtmpSocket extends Thread {
         }
 
         String name = (String) message.getCommands().get(3);
-        //streamName.setName(name);
-        //streamName.setApp(streamType);
+        streamName.setName(name);
+        streamName.setApp(streamType);
 
-        //createStream(ctx);
+        Stream stream = new Stream(streamName);
+        //stream.setPublisher(ctx.channel());
+        streamManager.add(streamName, stream);
+
         // reply a onStatus
         RtmpCommandMessage onStatus = onStatus("status", "NetStream.Publish.Start", "Start publishing");
         chunkEncoder.encode(onStatus);
@@ -275,19 +283,19 @@ public class RtmpSocket extends Thread {
     private void handlePlay(RtmpCommandMessage message)throws IOException {
         //role = Role.Subscriber;
 
-        //String name = (String) message.getCommands().get(3);
-        //streamName.setName(name);
+        String name = (String) message.getCommands().get(3);
+        streamName.setName(name);
 
-        //Stream stream = streamManager.getStream(streamName);
-        //if(stream == null){
+        Stream stream = streamManager.get(streamName);
+        if(stream == null){
             // NetStream.Play.StreamNotFound
-            //RtmpCommandMessage onStatus = onStatus("error", "NetStream.Play.StreamNotFound", "No Such Stream");
-            //chunkEncoder.encode(onStatus);
+            RtmpCommandMessage onStatus = onStatus("error", "NetStream.Play.StreamNotFound", "No Such Stream");
+            chunkEncoder.encode(onStatus);
 
             //normalShutdown = true;
-            //socket.close();
+            socket.close();
 
-        //}else{
+        }//else{
             //startPlay(ctx, stream);
         //}
     }
@@ -302,14 +310,14 @@ public class RtmpSocket extends Thread {
         chunkEncoder.encode(onStatus);
         // send User Control Message Stream EOF (1) to all subscriber
         // and we close all publisher and subscribers
-        //Stream stream = streamManager.getStream(streamName);
+        Stream stream = streamManager.get(streamName);
 
-        //if(stream != null){
+        if(stream != null){
             //stream.sendEofToAllSubscriberAndClose();
-            //streamManager.remove(streamName);
+            streamManager.remove(streamName);
             //normalShutdown = true;
             socket.close();
-        //}
+        }
     }
 
     private RtmpCommandMessage onStatus(String level, String code, String description){

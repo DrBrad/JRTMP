@@ -4,25 +4,25 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class StreamManager {
 
-    private ConcurrentHashMap<String, Stream> streams;
+    private ConcurrentHashMap<StreamName, Stream> streams;
 
     public StreamManager(){
         streams = new ConcurrentHashMap<>();
     }
 
-    public void add(String name, Stream stream){
+    public void add(StreamName name, Stream stream){
         streams.put(name, stream);
     }
 
-    public Stream get(String name){
+    public Stream get(StreamName name){
         return streams.get(name);
     }
 
-    public boolean contains(String name){
+    public boolean contains(StreamName name){
         return streams.contains(name);
     }
 
-    public void remove(String name){
+    public void remove(StreamName name){
         streams.remove(name);
     }
 }
