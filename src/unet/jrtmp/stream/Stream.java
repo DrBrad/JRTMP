@@ -90,9 +90,11 @@ public class Stream {
 
         try{
 
-        System.out.println("BITRATE: "+metadata.get("videodatarate"));
-        out.write(message.raw());
-        out.flush();
+            System.out.println("BITRATE: "+metadata.get("videodatarate"));
+            out.write(createTSHeader());
+            out.write(0x47);
+            out.write(message.raw());
+            out.flush();
 
         }catch(IOException e){
             e.printStackTrace();
@@ -102,6 +104,23 @@ public class Stream {
 
 
 
+    }
+
+    private static byte[] createTSHeader(){
+        // Create a simplified TS header as a byte array
+        byte[] tsHeader = {
+                (byte) 0x47,  // Sync byte
+                (byte) 0x40,  // Transport error indicator, payload unit start indicator
+                (byte) 0x00, (byte) 0x10,  // PID (Packet Identifier) for video stream (0x0010)
+                (byte) 0x30, (byte) 0x32,  // Transport scrambling control, adaptation field control
+                (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0xB0,  // Adaptation field length, discontinuity indicator
+                (byte) 0x0D,  // Payload start indicator, payload length (13 bytes)
+                (byte) 0x00, (byte) 0x00, (byte) 0x00, (byte) 0x01,  // PCR flag, optional PCR values
+                (byte) 0xE1,  // Stream type (0xE1 indicates H.264 video)
+                (byte) 0x00, (byte) 0x00, (byte) 0x00  // Optional elementary stream specific data
+        };
+
+        return tsHeader;
     }
 
     public void setMetadata(Map<String, Object> metadata){
