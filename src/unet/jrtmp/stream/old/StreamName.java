@@ -1,11 +1,22 @@
-package unet.jrtmp.stream;
+package unet.jrtmp.stream.old;
 
 public class StreamName {
 
-    private String app;
-    private String name;
+    private String app, name;
 
     private boolean obsClient;
+
+    public String getApp(){
+        return app;
+    }
+
+    public String getName(){
+        return name;
+    }
+
+    public boolean isObsClient(){
+        return obsClient;
+    }
 
     @Override
     public boolean equals(Object obj){
@@ -44,7 +55,7 @@ public class StreamName {
 
     @Override
     public int hashCode(){
-        final int prime = 31;
+        int prime = 31;
         int result = 1;
         result = prime * result + ((app == null) ? 0 : app.hashCode());
         result = prime * result + ((name == null) ? 0 : name.hashCode());

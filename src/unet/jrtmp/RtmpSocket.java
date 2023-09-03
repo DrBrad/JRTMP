@@ -5,7 +5,6 @@ import unet.jrtmp.handlers.ChunkDecoder;
 import unet.jrtmp.handlers.ChunkEncoder;
 import unet.jrtmp.rtmp.messages.RtmpMessage;
 import unet.jrtmp.rtmp.messages.*;
-import unet.jrtmp.stream.Stream;
 
 import java.io.IOException;
 import java.io.InputStream;
