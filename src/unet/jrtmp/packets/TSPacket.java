@@ -2,9 +2,9 @@ package unet.jrtmp.packets;
 
 public class TSPacket extends Packet {
 
-    public static final int TS_PACKET_SIZE = 4;//188;
+    public static final int TS_PACKET_SIZE = 182;
 
-    private byte[] raw = new byte[TS_PACKET_SIZE];
+    private byte[] raw = new byte[TS_PACKET_SIZE+6];
 
     //private Status status;
 
@@ -16,7 +16,7 @@ public class TSPacket extends Packet {
         raw[4] = 0x30;
         raw[5] = (byte) (continuity & 0x0F);
 
-        //System.arraycopy(buffer, 0, raw, 6, TS_PACKET_SIZE-6);
+        System.arraycopy(buffer, 0, raw, 6, TS_PACKET_SIZE);
     }
 
     /*

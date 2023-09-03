@@ -20,7 +20,7 @@ public class TSPacketManager extends PacketManager {
     private OutputStream out;
 
     public TSPacketManager(){
-        buffer = new byte[TS_PACKET_SIZE-6];
+        buffer = new byte[TS_PACKET_SIZE];
         //segments = new ArrayList<>();
         try{
             out = new FileOutputStream(new File("/home/brad/Downloads/test.ts"));
@@ -33,7 +33,7 @@ public class TSPacketManager extends PacketManager {
     public void add(byte[] payload){
         int dataLength = payload.length;
 
-        if(dataLength <= TS_PACKET_SIZE-6-position){
+        if(dataLength <= TS_PACKET_SIZE-position){
             // Append the entire data to the current segment
             System.arraycopy(payload, 0, buffer, position, dataLength);
             position += dataLength;
@@ -42,16 +42,16 @@ public class TSPacketManager extends PacketManager {
             int offset = 0;
 
             while(offset < dataLength){
-                int bytesToCopy = Math.min(TS_PACKET_SIZE-6-position, dataLength-offset);
+                int bytesToCopy = Math.min(TS_PACKET_SIZE-position, dataLength-offset);
                 System.arraycopy(payload, offset, buffer, position, bytesToCopy);
                 offset += bytesToCopy;
                 position += bytesToCopy;
 
-                if(position == TS_PACKET_SIZE-6){
+                if(position == TS_PACKET_SIZE){
                     //segments.add(buffer);
                     write(new TSPacket(buffer, pid, continuity));
                     continuity++;
-                    buffer = new byte[TS_PACKET_SIZE-6];
+                    buffer = new byte[TS_PACKET_SIZE];
                     position = 0;
                 }
             }

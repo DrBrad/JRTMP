@@ -9,8 +9,8 @@ public class Main {
     //EVERY TIME WE SEE WRITE / FLUSH (OBJECT) > MEANS CHUNK ENCODE WITH OBJECT IE MESSAGE
 
     public static void main(String[] args)throws Exception {
-        //RtmpServer server = new RtmpServer(1935);
-        //server.start();
+        RtmpServer server = new RtmpServer(1935);
+        server.start();
 
         /*
         TSPacketManager pm = new TSPacketManager();
