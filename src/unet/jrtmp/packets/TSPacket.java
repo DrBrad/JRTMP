@@ -2,11 +2,9 @@ package unet.jrtmp.packets;
 
 public class TSPacket extends Packet {
 
-    public static final int TS_PACKET_SIZE = 182;
+    public static final int TS_PACKET_SIZE = 188;
 
     private byte[] raw = new byte[TS_PACKET_SIZE+6];
-
-    //private Status status;
 
     public TSPacket(byte[] buffer, int pid, int continuity){
         raw[0] = 0x47;
@@ -19,21 +17,8 @@ public class TSPacket extends Packet {
         System.arraycopy(buffer, 0, raw, 6, TS_PACKET_SIZE);
     }
 
-    /*
-    public Status getStatus(){
-        return status;
-    }
-    */
-
     @Override
     public byte[] getRaw(){
         return raw;
     }
-
-    /*
-    public enum Status {
-        INCOMPLETE,
-        COMPLETE
-    }
-    */
 }
