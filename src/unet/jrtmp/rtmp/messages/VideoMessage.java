@@ -25,7 +25,7 @@ public class VideoMessage extends RtmpMediaMessage {
 
     @Override
     public byte[] raw(){
-        return new byte[0];
+        return videoData;
     }
 
     public boolean isH264KeyFrame(){

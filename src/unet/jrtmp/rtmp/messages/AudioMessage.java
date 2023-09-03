@@ -2,7 +2,7 @@ package unet.jrtmp.rtmp.messages;
 
 public class AudioMessage extends RtmpMediaMessage {
 
-    byte[] audioData;
+    private byte[] audioData;
 
     public AudioMessage(byte[] audioData){
         this.audioData = audioData;
