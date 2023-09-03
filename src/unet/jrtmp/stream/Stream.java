@@ -91,11 +91,11 @@ public class Stream {
         try{
 
             System.out.println("BITRATE: "+metadata.get("videodatarate")+"  "+message.raw().length);
-/*
+
             out.write(createTSHeader());
             out.write(message.raw());
             out.flush();
-*/
+
         }catch(Exception e){//IO
             e.printStackTrace();
         }
