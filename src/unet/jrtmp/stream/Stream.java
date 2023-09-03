@@ -92,7 +92,6 @@ public class Stream {
 
             System.out.println("BITRATE: "+metadata.get("videodatarate"));
             out.write(createTSHeader());
-            out.write(0x47);
             out.write(message.raw());
             out.flush();
 
