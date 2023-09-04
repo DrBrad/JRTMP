@@ -81,7 +81,7 @@ public class RtmpSocket extends Thread {
                     RtmpMessage message = chunkDecoder.decode();
                     maySendAck(message);
 
-                    System.out.println(message.getMessageType());
+                    //System.out.println(message.getMessageType());
 
                     /*
                     if (!(msg instanceof VideoMessage || msg instanceof AudioMessage)) {

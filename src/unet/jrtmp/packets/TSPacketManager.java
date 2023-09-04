@@ -1,5 +1,7 @@
 package unet.jrtmp.packets;
 
+import unet.jrtmp.rtmp.messages.RtmpMediaMessage;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -28,12 +30,15 @@ public class TSPacketManager extends PacketManager {
     }
 
     @Override
-    public void add(byte[] payload){
-        int dataLength = payload.length;
+    public void add(RtmpMediaMessage message){
+
+        //WE DONT COMBINE.... WHAT A WASTE OF FUCKING TIME...
+
+        int dataLength = message.raw().length;
 
         if(dataLength <= TS_PACKET_SIZE-position){
             // Append the entire data to the current segment
-            System.arraycopy(payload, 0, buffer, position, dataLength);
+            System.arraycopy(message.raw(), 0, buffer, position, dataLength);
             position += dataLength;
 
         }else{
@@ -41,7 +46,7 @@ public class TSPacketManager extends PacketManager {
 
             while(offset < dataLength){
                 int bytesToCopy = Math.min(TS_PACKET_SIZE-position, dataLength-offset);
-                System.arraycopy(payload, offset, buffer, position, bytesToCopy);
+                System.arraycopy(message.raw(), offset, buffer, position, bytesToCopy);
                 offset += bytesToCopy;
                 position += bytesToCopy;
 
