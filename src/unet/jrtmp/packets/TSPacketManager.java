@@ -27,8 +27,8 @@ public class TSPacketManager extends PacketManager {
         try{
             out = new FileOutputStream(new File("/home/brad/Downloads/test.ts"));
 
-            writeTSData(0x0000, createPATPayload());
-            writeTSData(0x1000, createPMTPayload());
+            //writeTSData(0x0000, createPATPayload());
+            //writeTSData(0x1000, createPMTPayload());
 
 
         }catch(IOException e){
@@ -41,6 +41,15 @@ public class TSPacketManager extends PacketManager {
 
         //WE DONT COMBINE.... WHAT A WASTE OF FUCKING TIME...
 
+        try{
+            out.write(message.raw());
+            out.flush();
+        }catch(IOException e){
+            e.printStackTrace();
+        }
+
+
+        /*
         try{
             if(message instanceof AudioMessage){
                 writeTSData(0x0110, message.raw());
@@ -84,12 +93,14 @@ public class TSPacketManager extends PacketManager {
     @Override
     public void write(Packet packet){
         //packet.getRaw());
+        /*
         try{
             out.write(packet.getRaw());
             out.flush();
         }catch(IOException e){
             e.printStackTrace();
         }
+        */
     }
 
 

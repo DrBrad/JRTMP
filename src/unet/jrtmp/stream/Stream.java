@@ -69,10 +69,10 @@ public class Stream {
 
             message.setTimestamp(obsTimeStamp);
             if(message instanceof VideoMessage){
-                message.setTimestampDelta(obsTimeStamp - videoTimestamp);
+                message.setTimestampDelta(obsTimeStamp-videoTimestamp);
                 videoTimestamp = obsTimeStamp;
             }else if(message instanceof AudioMessage){
-                message.setTimestampDelta(obsTimeStamp - audioTimestamp);
+                message.setTimestampDelta(obsTimeStamp-audioTimestamp);
                 audioTimestamp = obsTimeStamp;
             }
 
@@ -81,7 +81,7 @@ public class Stream {
                 VideoMessage vm = (VideoMessage) message;
                 if(vm.getTimestamp() != -1){
                     // we may encode as FMT1 ,so we need timestamp delta
-                    vm.setTimestampDelta(vm.getTimestamp() - videoTimestamp);
+                    vm.setTimestampDelta(vm.getTimestamp()-videoTimestamp);
                     videoTimestamp = vm.getTimestamp();
 
                 }else if(vm.getTimestampDelta() != -1){
@@ -93,7 +93,7 @@ public class Stream {
             if(message instanceof AudioMessage){
                 AudioMessage am = (AudioMessage) message;
                 if(am.getTimestamp() != -1){
-                    am.setTimestampDelta(am.getTimestamp() - audioTimestamp);
+                    am.setTimestampDelta(am.getTimestamp()-audioTimestamp);
                     audioTimestamp = am.getTimestamp();
 
                 }else if(am.getTimestampDelta() != -1){
