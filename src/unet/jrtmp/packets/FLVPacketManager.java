@@ -120,17 +120,13 @@ public class FLVPacketManager extends PacketManager {
     }
 
     private byte[] encodeFlvHeaderAndMetadata(RtmpMediaMessage message){
-        /*
         ByteBuffer encodeMetaData = ByteBuffer.allocate(1024);
 
-        List<Object> meta = new ArrayList<>();
-        meta.add(metadata);
-        AMF0.encode(buffer, meta);
-
-        //ByteBuf encodeMetaData = encodeMetaData();
-        //ByteBuf buf = Unpooled.buffer();
-
         ByteBuffer buffer = ByteBuffer.allocate(1024);
+        List<Object> meta = new ArrayList<>();
+        meta.add("onMetaData");
+        meta.add(meta);
+        AMF0.encode(encodeMetaData, meta);
 
         //RtmpMediaMessage message = content.get(0);
         int timestamp = message.getTimestamp() & 0xffffff;
@@ -139,23 +135,26 @@ public class FLVPacketManager extends PacketManager {
         buffer.put(flvHeader);
         buffer.putInt(0); // previousTagSize0
 
-        int readableBytes = encodeMetaData.readableBytes();
         buffer.put((byte) 0x12); // script
-        buffer.writeMedium(readableBytes);
+        buffer.put((byte) ((encodeMetaData.position() >> 16) & 0xff));
+        buffer.put((byte) ((encodeMetaData.position() >> 8) & 0xff));
+        buffer.put((byte) (encodeMetaData.position() & 0xff));
         // make the first script tag timestamp same as the keyframe
-        buffer.writeMedium(timestamp);
+        buffer.put((byte) ((timestamp >> 16) & 0xff));
+        buffer.put((byte) ((timestamp >> 8) & 0xff));
+        buffer.put((byte) (timestamp & 0xff));
         buffer.put((byte) timestampExtended);
 //		buf.writeInt(0); // timestamp + timestampExtended
-        buffer.writeMedium(0);// streamid
+        buffer.put((byte) ((0 >> 16) & 0xff));
+        buffer.put((byte) ((0 >> 8) & 0xff));
+        buffer.put((byte) (0 & 0xff));
         buffer.put(encodeMetaData);
-        buffer.putInt(readableBytes + 11);
+        buffer.putInt(encodeMetaData.position() + 11);
 
         //byte[] result = new byte[buf.readableBytes()];
         //buffer.readBytes(result);
 
         return buffer.array();
-        */
-        return null;
     }
 
     private void writeFlvHeaderAndMetadata(RtmpMediaMessage message)throws IOException {
