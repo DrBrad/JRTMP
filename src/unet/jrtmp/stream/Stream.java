@@ -1,5 +1,6 @@
 package unet.jrtmp.stream;
 
+import unet.jrtmp.packets.FLVPacketManager;
 import unet.jrtmp.packets.PacketManager;
 import unet.jrtmp.packets.TSPacketManager;
 import unet.jrtmp.rtmp.messages.AudioMessage;
@@ -39,6 +40,7 @@ public class Stream {
     public Stream(StreamName name){
         this.name = name;
         //content = new ArrayList<>();
+        //packetManager = new FLVPacketManager(this);
         packetManager = new TSPacketManager();
 
         /*
@@ -109,5 +111,9 @@ public class Stream {
 
     public void setMetadata(Map<String, Object> metadata){
         this.metadata = metadata;
+    }
+
+    public Map<String, Object> getMetadata(){
+        return metadata;
     }
 }
