@@ -90,8 +90,7 @@ public class RtmpSocket extends Thread {
                     */
 
                     if(message instanceof WindowAcknowledgementSize){
-                        int ackSize = ((WindowAcknowledgementSize) message).getWindowSize();
-                        ackWindowSize = ackSize;
+                        ackWindowSize = ((WindowAcknowledgementSize) message).getWindowSize();
                         return;
                     }
 

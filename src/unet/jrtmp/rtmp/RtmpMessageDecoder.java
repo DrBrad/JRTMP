@@ -63,6 +63,7 @@ public class RtmpMessageDecoder {
 
                     if(header.getFmt() == 0){
                         am.setTimestamp(header.getTimestamp());
+
                     }else if(header.getFmt() == 1 || header.getFmt() == 2){
                         am.setTimestampDelta(header.getTimestampDelta());
                     }
@@ -78,6 +79,7 @@ public class RtmpMessageDecoder {
 
                     if(header.getFmt() == 0){
                         vm.setTimestamp(header.getTimestamp());
+
                     }else if(header.getFmt() == 1 || header.getFmt() == 2){
                         vm.setTimestampDelta(header.getTimestampDelta());
                     }

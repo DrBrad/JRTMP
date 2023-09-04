@@ -6,6 +6,7 @@ public class VideoMessage extends RtmpMediaMessage {
 
     public VideoMessage(byte[] videoData){
         this.videoData = videoData;
+        //System.out.println(new String(videoData));
     }
 
     @Override
