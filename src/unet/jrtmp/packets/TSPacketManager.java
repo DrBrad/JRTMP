@@ -1,6 +1,8 @@
 package unet.jrtmp.packets;
 
+import unet.jrtmp.rtmp.messages.AudioMessage;
 import unet.jrtmp.rtmp.messages.RtmpMediaMessage;
+import unet.jrtmp.rtmp.messages.VideoMessage;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -24,6 +26,11 @@ public class TSPacketManager extends PacketManager {
         //segments = new ArrayList<>();
         try{
             out = new FileOutputStream(new File("/home/brad/Downloads/test.ts"));
+
+            writeTSData(0x0000, createPATPayload());
+            writeTSData(0x1000, createPMTPayload());
+
+
         }catch(IOException e){
             e.printStackTrace();
         }
@@ -34,6 +41,18 @@ public class TSPacketManager extends PacketManager {
 
         //WE DONT COMBINE.... WHAT A WASTE OF FUCKING TIME...
 
+        try{
+            if(message instanceof AudioMessage){
+                writeTSData(0x0110, message.raw());
+
+            }else if(message instanceof VideoMessage){
+                writeTSData(0x0100, message.raw());
+            }
+        }catch(IOException e){
+            e.printStackTrace();
+        }
+
+        /*
         int dataLength = message.raw().length;
 
         if(dataLength <= TS_PACKET_SIZE-position){
@@ -59,6 +78,7 @@ public class TSPacketManager extends PacketManager {
                 }
             }
         }
+        */
     }
 
     @Override
@@ -70,6 +90,74 @@ public class TSPacketManager extends PacketManager {
         }catch(IOException e){
             e.printStackTrace();
         }
+    }
+
+
+
+
+    private void writeTSData(int pid, byte[] data) throws IOException {
+        // Split data into TS packets and write them to the output stream
+        int dataLength = data.length;
+        int packetCount = (int) Math.ceil((double) dataLength / (TS_PACKET_SIZE - 4));
+
+        for (int i = 0; i < packetCount; i++) {
+            int packetStart = i * (TS_PACKET_SIZE - 4);
+            int packetEnd = Math.min(packetStart + (TS_PACKET_SIZE - 4), dataLength);
+
+            // Create the TS packet
+            byte[] tsPacket = new byte[TS_PACKET_SIZE];
+            tsPacket[0] = 0x47;  // Sync byte
+            tsPacket[1] = (byte) ((pid >> 8) & 0xFF);  // PID high byte
+            tsPacket[2] = (byte) (pid & 0xFF);         // PID low byte
+
+            // Adaptation field control, set to 0x01 for no adaptation field
+            tsPacket[3] = (byte) 0x01;
+
+            // Copy payload data into the packet
+            System.arraycopy(data, packetStart, tsPacket, 4, packetEnd - packetStart);
+
+            // Write the TS packet to the output stream
+            out.write(tsPacket);
+        }
+    }
+
+
+    private byte[] createPATPayload(){
+        // Create a simple PAT payload
+        byte[] patPayload = {
+                0x00, 0x00,  // Table ID (PAT)
+                0x00, (byte) 0xB0,  // Section syntax indicator, section length (11 bytes)
+                0x00, 0x01,  // Transport stream ID
+                0x00, 0x00,  // Version number and current next indicator
+                0x00, 0x00,  // Section number and last section number
+                0x00, 0x01   // Program number (0x0001) and PID (0x0100)
+        };
+
+        return patPayload;
+    }
+
+    private byte[] createPMTPayload(){
+        // Create a simple PMT payload (for video and audio streams)
+        byte[] pmtPayload = {
+                0x02, (byte) 0xB0,  // Table ID (PMT), section syntax indicator, section length (11 bytes)
+                0x00, 0x01,  // Program number (0x0001)
+                0x00, 0x00,  // Version number and current next indicator
+                0x00, 0x00,  // Section number and last section number
+                0x1B, (byte) 0xE0,  // PCR PID (0x1BE0)
+                0x00, (byte) 0xF0,  // Program info length (0x00F0)
+
+                // Video Stream Info
+                0x1B, (byte) 0xE0,  // Stream type (H.264 video), elementary PID (0x1BE0)
+                0x00, 0x00,  // Reserved bits
+                0x00, (byte) 0xF0,  // ES Info length (0x00F0)
+
+                // Audio Stream Info (AAC audio)
+                0x0F, (byte) 0xE1,  // Stream type (AAC audio), elementary PID (0x0FE1)
+                0x00, 0x00,  // Reserved bits
+                0x00, 0x00   // ES Info length (0x0000)
+        };
+
+        return pmtPayload;
     }
 
     /*

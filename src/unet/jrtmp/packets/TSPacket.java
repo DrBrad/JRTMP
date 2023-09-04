@@ -24,21 +24,12 @@ public class TSPacket extends Packet {
         raw[5] = (byte) (continuity & 0x0F);
         */
 
-        // Set the Sync byte (always 0x47)
-        raw[0] = (byte) 0x47;
+        raw[0] = 0x47;  // Sync byte
+        raw[1] = (byte) ((pid >> 8) & 0xFF);  // PID high byte
+        raw[2] = (byte) (pid & 0xFF);         // PID low byte
 
-        // Set the Transport error indicator, Payload unit start indicator, and Transport priority bits
-        raw[1] = (byte) 0x40;
-
-        // Set the PID (13 bits)
-        raw[1] |= (byte) ((pid >> 8) & 0x1F);
-        raw[2] = (byte) (pid & 0xFF);
-
-        // Set the Transport scrambling control, Adaptation field control bits
-        raw[3] = (byte) 0x00;
-
-        // Set the Continuity counter (4 bits)
-        raw[3] |= (byte) (continuity & 0x0F);
+        // Adaptation field control, set to 0x01 for no adaptation field
+        raw[3] = (byte) 0x01;
 
         System.arraycopy(buffer, 0, raw, 4, TS_PACKET_SIZE);
     }
