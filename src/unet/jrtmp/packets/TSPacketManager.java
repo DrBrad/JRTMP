@@ -27,6 +27,8 @@ public class TSPacketManager extends PacketManager {
         try{
             out = new FileOutputStream(new File("/home/brad/Downloads/test.ts"));
 
+            //WE NEED TO ENSURE WE ARE NOT MIXING AUDIO AND VIDEO WITHIN THE BUFFER....
+
             //writeTSData(0x0000, createPATPayload());
             //writeTSData(0x1000, createPMTPayload());
 
