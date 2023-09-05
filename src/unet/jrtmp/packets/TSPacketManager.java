@@ -27,6 +27,15 @@ public class TSPacketManager extends PacketManager {
         try{
             out = new FileOutputStream(new File("/home/brad/Downloads/test.ts"));
 
+            //WRITE PAT
+            //WRITE PMT
+            //WRITE PCR
+
+            //THEN WRITE THE DATA PACKETS
+            //4 byte header - 184 bytes of payload segments
+            //ENSURE PID and CONTENUITY are correct for both
+            //ENSURE that AUDIO buffer is not mixed with VIDEO buffer
+
             //WE NEED TO ENSURE WE ARE NOT MIXING AUDIO AND VIDEO WITHIN THE BUFFER....
 
             //writeTSData(0x0000, createPATPayload());
