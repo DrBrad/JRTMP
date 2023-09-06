@@ -16,7 +16,7 @@ public class TSPacketManager extends PacketManager {
 
     public static final int TS_PACKET_SIZE = 188;
 
-    private int pid = 0, continuity = 0, position = 0;
+    private int continuity = 0, position = 0;
 
     //private TSPacket packet;
     private byte[] videoBuffer, audioBuffer;
@@ -25,8 +25,8 @@ public class TSPacketManager extends PacketManager {
     private OutputStream out;
 
     public TSPacketManager(){
-        videoBuffer = new byte[TS_PACKET_SIZE];
-        audioBuffer = new byte[TS_PACKET_SIZE];
+        videoBuffer = new byte[TS_PACKET_SIZE-4];
+        audioBuffer = new byte[TS_PACKET_SIZE-4];
         //segments = new ArrayList<>();
         try{
             out = new FileOutputStream(new File("/home/brad/Downloads/test.ts"));
@@ -66,7 +66,7 @@ public class TSPacketManager extends PacketManager {
 
         //ENSURE PID...
 
-        if(message instanceof AudioMessage){
+        if(message instanceof VideoMessage){
             if(dataLength <= TS_PACKET_SIZE-4-position){
                 // Append the entire data to the current segment
                 System.arraycopy(message.raw(), 0, videoBuffer, position, dataLength);
@@ -83,15 +83,18 @@ public class TSPacketManager extends PacketManager {
 
                     if(position == TS_PACKET_SIZE-4){
                         //segments.add(buffer);
-                        write(new TSPacket(videoBuffer, pid, continuity));
-                        continuity++;
+                        TSPacket packet = new TSPacket(videoBuffer);
+                        packet.setPID(0);
+                        packet.setContinuityCounter(continuity);
+                        write(packet);
+                        continuity = (continuity + 1) % 16;
                         videoBuffer = new byte[TS_PACKET_SIZE-4];
                         position = 0;
                     }
                 }
             }
 
-        }else if(message instanceof VideoMessage){
+        }else if(message instanceof AudioMessage){
             if(dataLength <= TS_PACKET_SIZE-4-position){
                 // Append the entire data to the current segment
                 System.arraycopy(message.raw(), 0, audioBuffer, position, dataLength);
@@ -108,8 +111,11 @@ public class TSPacketManager extends PacketManager {
 
                     if(position == TS_PACKET_SIZE-4){
                         //segments.add(buffer);
-                        write(new TSPacket(audioBuffer, pid, continuity));
-                        continuity++;
+                        TSPacket packet = new TSPacket(audioBuffer);
+                        packet.setPID(1);
+                        packet.setContinuityCounter(continuity);
+                        write(packet);
+                        continuity = (continuity + 1) % 16;
                         audioBuffer = new byte[TS_PACKET_SIZE-4];
                         position = 0;
                     }
@@ -122,7 +128,7 @@ public class TSPacketManager extends PacketManager {
     public void write(Packet packet){
         //packet.getRaw());
         try{
-            out.write(packet.getRaw());
+            out.write(packet.getEncoded());
             out.flush();
         }catch(IOException e){
             e.printStackTrace();
