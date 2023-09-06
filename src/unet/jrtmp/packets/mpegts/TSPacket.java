@@ -18,6 +18,14 @@ public class TSPacket extends Packet {
     ==============================================================================
     */
 
+    private byte[] payload;
+
+    public TSPacket(byte[] payload, int pid, int continuity){
+        this.payload = payload;
+        this.pid = pid;
+        this.continuity = continuity;
+    }
+
     public boolean isTransportErrorIndicator(){
         return transportErrorIndicator;
     }
@@ -90,6 +98,8 @@ public class TSPacket extends Packet {
                         (adaptationFieldControl << 4) |
                         continuity
         );
+
+        System.arraycopy(payload, 0, packet, 4, payload.length);
 
         return packet;
     }

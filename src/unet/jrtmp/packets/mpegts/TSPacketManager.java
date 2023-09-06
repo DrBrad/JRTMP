@@ -160,7 +160,7 @@ public class TSPacketManager extends PacketManager {
 
                     if(position == TS_PACKET_SIZE-4){
                         //segments.add(buffer);
-                        TSPacket packet = new TSMediaPacket(videoBuffer, 0, continuity);
+                        TSPacket packet = new TSPacket(videoBuffer, 0, continuity);
                         write(packet);
                         continuity = (continuity + 1) % 16;
                         videoBuffer = new byte[TS_PACKET_SIZE-4];
@@ -186,7 +186,7 @@ public class TSPacketManager extends PacketManager {
 
                     if(position == TS_PACKET_SIZE-4){
                         //segments.add(buffer);
-                        TSPacket packet = new TSMediaPacket(audioBuffer, 1, continuity);
+                        TSPacket packet = new TSPacket(audioBuffer, 1, continuity);
                         write(packet);
                         continuity = (continuity + 1) % 16;
                         audioBuffer = new byte[TS_PACKET_SIZE-4];
@@ -206,100 +206,5 @@ public class TSPacketManager extends PacketManager {
         }catch(IOException e){
             e.printStackTrace();
         }
-    }
-
-    private byte[] generatePMTSegment(){
-        byte[] segment = new byte[TS_PACKET_SIZE];
-
-        segment[0] = 0x47; // Sync byte
-        segment[1] = (byte) 0x40; // Transport Error Indicator, Payload Unit Start Indicator, and Transport Priority
-        segment[2] = 0x00; // PID (Program ID) - High byte
-        segment[3] = (byte) 0x10; // PID (Program ID) - Low byte
-
-        segment[0] = 0x00; // PAT version number
-        segment[1] = 0x00; // PAT section number
-        segment[2] = 0x00; // PAT program number
-
-        segment[3] = 0x01; // Reserved
-        segment[4] = 0x00; // Reserved
-        segment[5] = 0x00; // Reserved
-
-        // Add the PID for the audio stream.
-        segment[6] = (byte) 0x00;
-        segment[7] = (byte) 0x01;
-
-        // Add the PID for the video stream.
-        segment[8] = (byte) 0x01;
-        segment[9] = (byte) 0x00;
-
-        /*
-        segment[4] = 0x00; // Transport Scrambling Control, Adaptation Field Control, and Continuity Counter
-        segment[5] = (byte) 0xB0; // Payload (Program Map Table)
-        segment[6] = 0x0D; // Payload (Program Map Table) - Length
-        segment[7] = 0x00; // Program Number - High byte
-        segment[8] = 0x01; // Program Number - Low byte
-        segment[9] = (byte) 0xC1; // Program Map PID - High byte
-        segment[10] = 0x00; // Program Map PID - Low byte
-        segment[11] = 0x00; // Unused
-        segment[12] = 0x01; // CRC32 - Byte 1
-        segment[13] = (byte) 0xF0; // CRC32 - Byte 2
-        segment[14] = 0x00; // CRC32 - Byte 3
-        segment[15] = 0x2A; // CRC32 - Byte 4
-        /*
-        // Set the values for the PMT header
-        segment[0] = 0x47; // Sync byte
-        segment[1] = 0x40; // Transport Error Indicator, Payload Unit Start Indicator, and Transport Priority
-        segment[2] = 0x00; // PID (Program ID)
-        segment[3] = 0x10; // Transport Scrambling Control, Adaptation Field Control, and Continuity Counter
-        segment[4] = 0x00; // Payload (Program Map Table)
-
-        // Set the PMT section length (including the adaptation field if present)
-        segment[5] = 0x00; // High byte of section length (always zero for PMT)
-        segment[6] = 0x0D; // Low byte of section length (13 bytes excluding the first 5 bytes)
-        */
-
-        for(int i = 14; i < TS_PACKET_SIZE; i++){
-            segment[i] = (byte) 0xFF;
-        }
-
-        // Add your own data here (modify as needed)
-        // Bytes 7 to 187 are available for your data
-
-        // Output the PMT segment in hexadecimal format
-        for(int i = 0; i < segment.length; i++){
-            System.out.printf("%02X ", segment[i]);
-        }
-
-        return segment;
-    }
-
-    private byte[] generatePCRSegment(){
-        byte[] segment = new byte[TS_PACKET_SIZE];
-
-        // Set the values for the PCR header
-        segment[0] = 0x47; // Sync byte
-        segment[1] = (byte) 0x50; // Transport Error Indicator, Payload Unit Start Indicator, and Transport Priority
-        segment[2] = 0x00; // PID (Program ID)
-        segment[3] = 0x10; // Transport Scrambling Control, Adaptation Field Control, and Continuity Counter
-        segment[4] = 0x00; // Payload (PCR)
-
-        // Set the PCR section length (including the adaptation field if present)
-        segment[5] = 0x00; // High byte of section length (always zero for PCR)
-        segment[6] = (byte) 0xB0; // Low byte of section length (176 bytes excluding the first 5 bytes)
-
-        // Add your own PCR data here (modify as needed)
-        // Bytes 7 to 181 are available for your PCR data
-
-
-        for(int i = 7; i < TS_PACKET_SIZE; i++){
-            segment[i] = (byte) 0xFF;
-        }
-
-        // Output the PCR segment in hexadecimal format
-        for(int i = 0; i < segment.length; i++){
-            System.out.printf("%02X ", segment[i]);
-        }
-
-        return segment;
     }
 }
