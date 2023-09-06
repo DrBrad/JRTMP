@@ -1,7 +1,6 @@
 package unet.rtmp.test;
 
-import unet.jrtmp.RtmpServer;
-import unet.jrtmp.packets.TSPacketManager;
+import unet.jrtmp.packets.mpegts.TSPacketManager;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -16,8 +15,9 @@ public class Main {
         //RtmpServer server = new RtmpServer(1935);
         //server.start();
 
-        //TSPacketManager pm = new TSPacketManager();
+        TSPacketManager pm = new TSPacketManager();
 
+        /*
         File f = new File("/home/brad/Downloads/stream-0.ts");
         InputStream in = new FileInputStream(f);
 

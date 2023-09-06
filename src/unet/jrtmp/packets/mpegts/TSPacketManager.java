@@ -1,5 +1,7 @@
-package unet.jrtmp.packets;
+package unet.jrtmp.packets.mpegts;
 
+import unet.jrtmp.packets.Packet;
+import unet.jrtmp.packets.PacketManager;
 import unet.jrtmp.rtmp.messages.AudioMessage;
 import unet.jrtmp.rtmp.messages.RtmpMediaMessage;
 import unet.jrtmp.rtmp.messages.VideoMessage;
@@ -8,8 +10,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.ByteBuffer;
-import java.util.zip.CRC32;
 
 public class TSPacketManager extends PacketManager {
 
@@ -31,10 +31,87 @@ public class TSPacketManager extends PacketManager {
         try{
             out = new FileOutputStream(new File("/home/brad/Downloads/test.ts"));
 
+
+            /*
+            for(int i = 0; i < segment.length; i++){
+                System.out.printf("%02X ", segment[i]);
+            }
+            */
+
+             byte[] b = new byte[]{
+                    /* TS */
+                    0x47, 0x40, 0x00, 0x10, 0x00,
+                    /* PSI */
+                    0x00, (byte) 0xb0, 0x0d, 0x00, 0x01, (byte) 0xc1, 0x00, 0x00,
+                    /* PAT */
+                    0x00, 0x01, (byte) 0xf0, 0x01,
+                    /* CRC */
+                    0x2e, 0x70, 0x19, 0x05,
+                    /* stuffing 167 bytes */
+                    (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+                    (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+                    (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+                    (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+                    (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+                    (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+                    (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+                    (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+                    (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+                    (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+                    (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+                    (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+                    (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+                    (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+                    (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+                    (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+                    (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+
+                    /* TS */
+                    0x47, 0x50, 0x01, 0x10, 0x00,
+                    /* PSI */
+                    0x02, (byte) 0xb0, 0x17, 0x00, 0x01, (byte) 0xc1, 0x00, 0x00,
+                    /* PMT */
+                     (byte) 0xe1, 0x00,
+                     (byte) 0xf0, 0x00,
+                    0x1b, (byte) 0xe1, 0x00, (byte) 0xf0, 0x00, /* h264 */
+                    0x0f, (byte) 0xe1, 0x01, (byte) 0xf0, 0x00, /* aac */
+                    /*0x03, 0xe1, 0x01, 0xf0, 0x00,*/ /* mp3 */
+                    /* CRC */
+                    0x2f, 0x44, (byte) 0xb9, (byte) 0x9b, /* crc for aac */
+                    /*0x4e, 0x59, 0x3d, 0x1e,*/ /* crc for mp3 */
+                    /* stuffing 157 bytes */
+                    (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+                    (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+                    (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+                    (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+                    (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+                    (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+                    (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+                    (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+                    (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+                    (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+                    (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+                    (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+                    (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+                    (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+                    (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff,
+                    (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff
+            };
+
+             out.write(b);
+
+             /*
             //WRITE PAT
-            out.write(generatePATSegment());
+            TSPacket packet = new TSPATPacket(0, 0);
+            out.write(packet.getEncoded());
+
+            byte[] b = packet.getEncoded();
+            for(int i = 0; i < b.length; i++){
+                System.out.printf("%02X ", b[i]);
+            }
 
             System.out.println();
+            */
 
             //WRITE PMT
             //out.write(generatePMTSegment());
@@ -83,9 +160,7 @@ public class TSPacketManager extends PacketManager {
 
                     if(position == TS_PACKET_SIZE-4){
                         //segments.add(buffer);
-                        TSPacket packet = new TSPacket(videoBuffer);
-                        packet.setPID(0);
-                        packet.setContinuityCounter(continuity);
+                        TSPacket packet = new TSMediaPacket(videoBuffer, 0, continuity);
                         write(packet);
                         continuity = (continuity + 1) % 16;
                         videoBuffer = new byte[TS_PACKET_SIZE-4];
@@ -111,9 +186,7 @@ public class TSPacketManager extends PacketManager {
 
                     if(position == TS_PACKET_SIZE-4){
                         //segments.add(buffer);
-                        TSPacket packet = new TSPacket(audioBuffer);
-                        packet.setPID(1);
-                        packet.setContinuityCounter(continuity);
+                        TSPacket packet = new TSMediaPacket(audioBuffer, 1, continuity);
                         write(packet);
                         continuity = (continuity + 1) % 16;
                         audioBuffer = new byte[TS_PACKET_SIZE-4];
@@ -133,143 +206,6 @@ public class TSPacketManager extends PacketManager {
         }catch(IOException e){
             e.printStackTrace();
         }
-    }
-
-    private byte[] generatePATSegment(){
-        byte[] segment = new byte[TS_PACKET_SIZE];
-
-
-        //TS HEADER
-
-        // Set the sync byte (always 0x47)
-        segment[0] = 0x47;
-
-        // Set the transport error indicator, payload unit start indicator, and transport priority
-        segment[1] = (byte) 0x40;
-
-        // Set the PID (Program ID) for the PAT (always 0x00 for PAT)
-        segment[2] = 0x00;
-        segment[3] = 0x10;
-
-        //PADDING
-        segment[4] = 0x00;
-        segment[5] = 0x00;
-
-        //PAT HEADER
-        segment[6] = (byte) 0xB0; // PAT version number
-        segment[7] = 0x0D; // PAT section number
-
-        segment[8] = 0x00; // PAT program number
-        segment[9] = 0x01; // Reserved
-
-        segment[10] = 0x00; // Reserved
-        segment[11] = 0x00; // Reserved
-
-
-        //PROGRAM
-        // Add the PID for the audio stream.
-        segment[12] = (byte) 0x00;
-        segment[13] = (byte) 0x01;
-
-        // Add the PID for the video stream.
-        segment[14] = (byte) 0x01;
-        segment[15] = (byte) 0x00;
-
-
-        int crc32 = (int) calculateCRC32(segment, 5, 9);
-        segment[16] = (byte) ((crc32 >> 24) & 0xFF);
-        segment[17] = (byte) ((crc32 >> 16) & 0xFF);
-        segment[18] = (byte) ((crc32 >> 8) & 0xFF);
-        segment[19] = (byte) (crc32 & 0xFF);
-
-
-
-        // Set the transport scrambling control, adaptation field control, and continuity counter
-
-
-        /*
-        segment[4] = (byte) 0x10;
-
-        // Set the PAT section length (always 0x00 for PAT)
-        segment[5] = 0x00;
-        segment[6] = 0x00;
-
-        // Set the program number and PID for the first program
-        segment[7] = 0x00; // Program number (always 0x00 for PAT)
-        segment[8] = 0x01; // PID high byte (0x0001)
-        segment[9] = (byte) 0xC1; // PID low byte (0x00C1)
-        */
-
-        /*
-        segment[0] = 0x47; // Sync byte
-        segment[1] = 0x40; // Transport Error Indicator, Payload Unit Start Indicator, and Transport Priority
-        segment[2] = 0x00; // PID (Program ID)
-        segment[3] = 0x10; // Transport Scrambling Control, Adaptation Field Control, and Continuity Counter
-        segment[4] = 0x00; // Payload (Program Association Table)
-
-        // Set the PAT section length (including the CRC)
-        segment[5] = 0x00; // High byte of section length (always zero for PAT)
-        segment[6] = 0x0D; // Low byte of section length (13 bytes excluding the first 5 bytes)
-
-        // Set the Program Number and PID for the first program
-        segment[7] = 0x00; // Program Number (0)
-        segment[8] = 0x00; // High byte of PID for Program Map Table (0x0001)
-        segment[9] = 0x01; // Low byte of PID for Program Map Table (0x00C1)
-
-        // Calculate and set the correct CRC32 value (based on the bytes)
-        int crc32 = (int) calculateCRC32(segment, 5, 9);
-        segment[10] = (byte) ((crc32 >> 24) & 0xFF);
-        segment[11] = (byte) ((crc32 >> 16) & 0xFF);
-        segment[12] = (byte) ((crc32 >> 8) & 0xFF);
-        segment[13] = (byte) (crc32 & 0xFF);
-        */
-
-        for(int i = 14; i < TS_PACKET_SIZE; i++){
-            segment[i] = (byte) 0xFF;
-        }
-
-        for(int i = 0; i < segment.length; i++){
-            System.out.printf("%02X ", segment[i]);
-        }
-
-        // Output the PAT segment in hexadecimal format
-        /*
-        for (int i = 0; i < 188; i++) {
-            System.out.printf("%02X ", segment[i]);
-        }
-
-        /*
-        // Set the Sync Byte (always 0x47)
-        segment[0] = 0x47;
-
-        // Set the Transport Error Indicator, Payload Unit Start Indicator, and Transport Priority
-        // In this example, we're not setting any errors or priorities, so these bits are all set to 0
-        segment[1] = 0x00;
-
-        // Set the PID for the PAT (Program Association Table)
-        // The PID for the PAT is always 0x0000
-        segment[2] = 0x00;
-        segment[3] = 0x00;
-
-        // Set the Transport Scrambling Control to '00' (no scrambling)
-        segment[4] = 0x00;
-
-        // Set the Adaptation Field Control to '01' (indicating the presence of an adaptation field)
-        // Note: In this example, we're not adding an adaptation field, so the remaining bits are set to '00'
-        segment[5] = 0x10;
-
-        // Set the Continuity Counter (increment this for each PAT packet)
-        // In this example, we're starting with a counter value of 0
-        segment[6] = 0x00;
-        */
-
-        return segment;
-    }
-
-    private long calculateCRC32(byte[] data, int start, int end){
-        CRC32 crc32 = new CRC32();
-        crc32.update(data, start, end - start + 1);
-        return crc32.getValue();
     }
 
     private byte[] generatePMTSegment(){

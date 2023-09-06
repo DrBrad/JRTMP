@@ -1,6 +1,8 @@
-package unet.jrtmp.packets;
+package unet.jrtmp.packets.flv;
 
 import unet.jrtmp.amf.AMF0;
+import unet.jrtmp.packets.Packet;
+import unet.jrtmp.packets.PacketManager;
 import unet.jrtmp.rtmp.messages.AudioMessage;
 import unet.jrtmp.rtmp.messages.RtmpMediaMessage;
 import unet.jrtmp.rtmp.messages.RtmpMessage;

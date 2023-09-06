@@ -1,14 +1,14 @@
-package unet.jrtmp.packets;
+package unet.jrtmp.packets.mpegts;
 
-import static unet.jrtmp.packets.TSPacketManager.TS_PACKET_SIZE;
+import unet.jrtmp.packets.Packet;
+
+import static unet.jrtmp.packets.mpegts.TSPacketManager.TS_PACKET_SIZE;
 
 public class TSPacket extends Packet {
 
     //private byte[] raw = new byte[TS_PACKET_SIZE];
-    private boolean transportErrorIndicator = false, payloadUnitStartIndicator = true, transportPriority = false;
-    private int PID, transportScramblingControl = 0, adaptationFieldControl = 1, continuityCounter;
-
-    private byte[] payload;
+    protected boolean transportErrorIndicator = false, payloadUnitStartIndicator = true, transportPriority = false;
+    protected int pid, continuity, transportScramblingControl = 0, adaptationFieldControl = 1;
 
     /*
     ==============================================================================
@@ -17,29 +17,6 @@ public class TSPacket extends Packet {
     |  47  |  0  |   1   |    0     | PID |      00    |     00     |  Counter   |
     ==============================================================================
     */
-
-    public TSPacket(byte[] payload){
-        this.payload = payload;
-        /*
-        raw[0] = 0x47;
-        raw[1] = 0x40;
-        raw[2] = (byte) ((pid >> 8) & 0xFF);
-        raw[3] = (byte) (pid & 0xFF);
-        raw[4] = 0x30;
-        raw[5] = (byte) (continuity & 0x0F);
-        */
-
-        /*
-        raw[0] = 0x47;  // Sync byte
-        raw[1] = (byte) ((pid >> 8) & 0xFF);  // PID high byte
-        raw[2] = (byte) (pid & 0xFF);         // PID low byte
-
-        // Adaptation field control, set to 0x01 for no adaptation field
-        raw[3] = (byte) 0x01;
-
-        System.arraycopy(buffer, 0, raw, 4, TS_PACKET_SIZE-4);
-        */
-    }
 
     public boolean isTransportErrorIndicator(){
         return transportErrorIndicator;
@@ -66,11 +43,11 @@ public class TSPacket extends Packet {
     }
 
     public int getPID(){
-        return PID;
+        return pid;
     }
 
     public void setPID(int PID){
-        this.PID = PID;
+        this.pid = PID;
     }
 
     public int getTransportScramblingControl(){
@@ -90,11 +67,11 @@ public class TSPacket extends Packet {
     }
 
     public int getContinuityCounter(){
-        return continuityCounter;
+        return continuity;
     }
 
     public void setContinuityCounter(int continuityCounter){
-        this.continuityCounter = continuityCounter;
+        this.continuity = continuityCounter;
     }
 
     @Override
@@ -105,16 +82,14 @@ public class TSPacket extends Packet {
                 (transportErrorIndicator ? 0x80 : 0x00) |
                         (payloadUnitStartIndicator ? 0x40 : 0x00) |
                         (transportPriority ? 0x20 : 0x00) |
-                        ((PID >> 8) & 0x1F)
+                        ((pid >> 8) & 0x1F)
         );
-        packet[2] = (byte)(PID & 0xFF);
+        packet[2] = (byte)(pid & 0xFF);
         packet[3] = (byte)(
                 (transportScramblingControl << 6) |
                         (adaptationFieldControl << 4) |
-                        continuityCounter
+                        continuity
         );
-
-        System.arraycopy(payload, 0, packet, 4, payload.length);
 
         return packet;
     }
