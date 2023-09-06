@@ -13,19 +13,21 @@ public class Main {
     //EVERY TIME WE SEE WRITE / FLUSH (OBJECT) > MEANS CHUNK ENCODE WITH OBJECT IE MESSAGE
 
     public static void main(String[] args)throws Exception {
-        RtmpServer server = new RtmpServer(1935);
-        server.start();
+        //RtmpServer server = new RtmpServer(1935);
+        //server.start();
 
         //TSPacketManager pm = new TSPacketManager();
 
-        /*
-        File f = new File("/home/brad/Downloads/stream000.ts");
+        File f = new File("/home/brad/Downloads/stream-0.ts");
         InputStream in = new FileInputStream(f);
 
-        byte[] b = new byte[752];
+        byte[] b = new byte[188];
         in.read(b);
         System.out.println(hex(b));
 
+        b = new byte[188];
+        in.read(b);
+        System.out.println(hex(b));
         /*
         TSPacketManager pm = new TSPacketManager();
         pm.add("H".getBytes());

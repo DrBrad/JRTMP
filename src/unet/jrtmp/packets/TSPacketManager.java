@@ -34,15 +34,15 @@ public class TSPacketManager extends PacketManager {
             //WRITE PAT
             out.write(generatePATSegment());
 
-            //System.out.println();
+            System.out.println();
 
             //WRITE PMT
-            out.write(generatePMTSegment());
+            //out.write(generatePMTSegment());
 
             //System.out.println();
 
             //WRITE PCR
-            out.write(generatePCRSegment());
+            //out.write(generatePCRSegment());
 
             //THEN WRITE THE DATA PACKETS
             //4 byte header - 184 bytes of payload segments
@@ -138,6 +138,69 @@ public class TSPacketManager extends PacketManager {
     private byte[] generatePATSegment(){
         byte[] segment = new byte[TS_PACKET_SIZE];
 
+
+        //TS HEADER
+
+        // Set the sync byte (always 0x47)
+        segment[0] = 0x47;
+
+        // Set the transport error indicator, payload unit start indicator, and transport priority
+        segment[1] = (byte) 0x40;
+
+        // Set the PID (Program ID) for the PAT (always 0x00 for PAT)
+        segment[2] = 0x00;
+        segment[3] = 0x10;
+
+        //PADDING
+        segment[4] = 0x00;
+        segment[5] = 0x00;
+
+        //PAT HEADER
+        segment[6] = (byte) 0xB0; // PAT version number
+        segment[7] = 0x0D; // PAT section number
+
+        segment[8] = 0x00; // PAT program number
+        segment[9] = 0x01; // Reserved
+
+        segment[10] = 0x00; // Reserved
+        segment[11] = 0x00; // Reserved
+
+
+        //PROGRAM
+        // Add the PID for the audio stream.
+        segment[12] = (byte) 0x00;
+        segment[13] = (byte) 0x01;
+
+        // Add the PID for the video stream.
+        segment[14] = (byte) 0x01;
+        segment[15] = (byte) 0x00;
+
+
+        int crc32 = (int) calculateCRC32(segment, 5, 9);
+        segment[16] = (byte) ((crc32 >> 24) & 0xFF);
+        segment[17] = (byte) ((crc32 >> 16) & 0xFF);
+        segment[18] = (byte) ((crc32 >> 8) & 0xFF);
+        segment[19] = (byte) (crc32 & 0xFF);
+
+
+
+        // Set the transport scrambling control, adaptation field control, and continuity counter
+
+
+        /*
+        segment[4] = (byte) 0x10;
+
+        // Set the PAT section length (always 0x00 for PAT)
+        segment[5] = 0x00;
+        segment[6] = 0x00;
+
+        // Set the program number and PID for the first program
+        segment[7] = 0x00; // Program number (always 0x00 for PAT)
+        segment[8] = 0x01; // PID high byte (0x0001)
+        segment[9] = (byte) 0xC1; // PID low byte (0x00C1)
+        */
+
+        /*
         segment[0] = 0x47; // Sync byte
         segment[1] = 0x40; // Transport Error Indicator, Payload Unit Start Indicator, and Transport Priority
         segment[2] = 0x00; // PID (Program ID)
@@ -159,6 +222,7 @@ public class TSPacketManager extends PacketManager {
         segment[11] = (byte) ((crc32 >> 16) & 0xFF);
         segment[12] = (byte) ((crc32 >> 8) & 0xFF);
         segment[13] = (byte) (crc32 & 0xFF);
+        */
 
         for(int i = 14; i < TS_PACKET_SIZE; i++){
             segment[i] = (byte) 0xFF;
@@ -211,6 +275,41 @@ public class TSPacketManager extends PacketManager {
     private byte[] generatePMTSegment(){
         byte[] segment = new byte[TS_PACKET_SIZE];
 
+        segment[0] = 0x47; // Sync byte
+        segment[1] = (byte) 0x40; // Transport Error Indicator, Payload Unit Start Indicator, and Transport Priority
+        segment[2] = 0x00; // PID (Program ID) - High byte
+        segment[3] = (byte) 0x10; // PID (Program ID) - Low byte
+
+        segment[0] = 0x00; // PAT version number
+        segment[1] = 0x00; // PAT section number
+        segment[2] = 0x00; // PAT program number
+
+        segment[3] = 0x01; // Reserved
+        segment[4] = 0x00; // Reserved
+        segment[5] = 0x00; // Reserved
+
+        // Add the PID for the audio stream.
+        segment[6] = (byte) 0x00;
+        segment[7] = (byte) 0x01;
+
+        // Add the PID for the video stream.
+        segment[8] = (byte) 0x01;
+        segment[9] = (byte) 0x00;
+
+        /*
+        segment[4] = 0x00; // Transport Scrambling Control, Adaptation Field Control, and Continuity Counter
+        segment[5] = (byte) 0xB0; // Payload (Program Map Table)
+        segment[6] = 0x0D; // Payload (Program Map Table) - Length
+        segment[7] = 0x00; // Program Number - High byte
+        segment[8] = 0x01; // Program Number - Low byte
+        segment[9] = (byte) 0xC1; // Program Map PID - High byte
+        segment[10] = 0x00; // Program Map PID - Low byte
+        segment[11] = 0x00; // Unused
+        segment[12] = 0x01; // CRC32 - Byte 1
+        segment[13] = (byte) 0xF0; // CRC32 - Byte 2
+        segment[14] = 0x00; // CRC32 - Byte 3
+        segment[15] = 0x2A; // CRC32 - Byte 4
+        /*
         // Set the values for the PMT header
         segment[0] = 0x47; // Sync byte
         segment[1] = 0x40; // Transport Error Indicator, Payload Unit Start Indicator, and Transport Priority
@@ -221,6 +320,7 @@ public class TSPacketManager extends PacketManager {
         // Set the PMT section length (including the adaptation field if present)
         segment[5] = 0x00; // High byte of section length (always zero for PMT)
         segment[6] = 0x0D; // Low byte of section length (13 bytes excluding the first 5 bytes)
+        */
 
         for(int i = 14; i < TS_PACKET_SIZE; i++){
             segment[i] = (byte) 0xFF;
@@ -266,76 +366,4 @@ public class TSPacketManager extends PacketManager {
 
         return segment;
     }
-
-    /*
-    private void writeTSData(int pid, byte[] data) throws IOException {
-        // Split data into TS packets and write them to the output stream
-        int dataLength = data.length;
-        int packetCount = (int) Math.ceil((double) dataLength / (TS_PACKET_SIZE - 4));
-
-        for (int i = 0; i < packetCount; i++) {
-            int packetStart = i * (TS_PACKET_SIZE - 4);
-            int packetEnd = Math.min(packetStart + (TS_PACKET_SIZE - 4), dataLength);
-
-            // Create the TS packet
-            byte[] tsPacket = new byte[TS_PACKET_SIZE];
-            tsPacket[0] = 0x47;  // Sync byte
-            tsPacket[1] = (byte) ((pid >> 8) & 0xFF);  // PID high byte
-            tsPacket[2] = (byte) (pid & 0xFF);         // PID low byte
-
-            // Adaptation field control, set to 0x01 for no adaptation field
-            tsPacket[3] = (byte) 0x01;
-
-            // Copy payload data into the packet
-            System.arraycopy(data, packetStart, tsPacket, 4, packetEnd - packetStart);
-
-            // Write the TS packet to the output stream
-            out.write(tsPacket);
-        }
-    }
-
-
-    private byte[] createPATPayload(){
-        // Create a simple PAT payload
-        byte[] patPayload = {
-                0x00, 0x00,  // Table ID (PAT)
-                0x00, (byte) 0xB0,  // Section syntax indicator, section length (11 bytes)
-                0x00, 0x01,  // Transport stream ID
-                0x00, 0x00,  // Version number and current next indicator
-                0x00, 0x00,  // Section number and last section number
-                0x00, 0x01   // Program number (0x0001) and PID (0x0100)
-        };
-
-        return patPayload;
-    }
-
-    private byte[] createPMTPayload(){
-        // Create a simple PMT payload (for video and audio streams)
-        byte[] pmtPayload = {
-                0x02, (byte) 0xB0,  // Table ID (PMT), section syntax indicator, section length (11 bytes)
-                0x00, 0x01,  // Program number (0x0001)
-                0x00, 0x00,  // Version number and current next indicator
-                0x00, 0x00,  // Section number and last section number
-                0x1B, (byte) 0xE0,  // PCR PID (0x1BE0)
-                0x00, (byte) 0xF0,  // Program info length (0x00F0)
-
-                // Video Stream Info
-                0x1B, (byte) 0xE0,  // Stream type (H.264 video), elementary PID (0x1BE0)
-                0x00, 0x00,  // Reserved bits
-                0x00, (byte) 0xF0,  // ES Info length (0x00F0)
-
-                // Audio Stream Info (AAC audio)
-                0x0F, (byte) 0xE1,  // Stream type (AAC audio), elementary PID (0x0FE1)
-                0x00, 0x00,  // Reserved bits
-                0x00, 0x00   // ES Info length (0x0000)
-        };
-
-        return pmtPayload;
-    }
-
-    /*
-    public List<byte[]> getSegments(){
-        return segments;
-    }
-    */
 }
