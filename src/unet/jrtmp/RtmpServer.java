@@ -29,6 +29,7 @@ public class RtmpServer {
 
         while((socket = server.accept()) != null){
             new RtmpSocket(socket, streamManager).start();
+            break;
         }
 
         server.close();

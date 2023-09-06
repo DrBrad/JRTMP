@@ -34,12 +34,12 @@ public class TSPacketManager extends PacketManager {
             //WRITE PAT
             out.write(generatePATSegment());
 
-            System.out.println();
+            //System.out.println();
 
             //WRITE PMT
             out.write(generatePMTSegment());
 
-            System.out.println();
+            //System.out.println();
 
             //WRITE PCR
             out.write(generatePCRSegment());
