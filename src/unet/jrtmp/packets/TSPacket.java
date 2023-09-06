@@ -1,10 +1,10 @@
 package unet.jrtmp.packets;
 
+import static unet.jrtmp.packets.TSPacketManager.TS_PACKET_SIZE;
+
 public class TSPacket extends Packet {
 
-    public static final int TS_PACKET_SIZE = 184;
-
-    private byte[] raw = new byte[TS_PACKET_SIZE+4];
+    private byte[] raw = new byte[TS_PACKET_SIZE];
 
     /*
     ==============================================================================
@@ -31,7 +31,7 @@ public class TSPacket extends Packet {
         // Adaptation field control, set to 0x01 for no adaptation field
         raw[3] = (byte) 0x01;
 
-        System.arraycopy(buffer, 0, raw, 4, TS_PACKET_SIZE);
+        System.arraycopy(buffer, 0, raw, 4, TS_PACKET_SIZE-4);
     }
 
     @Override

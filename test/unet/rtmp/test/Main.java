@@ -13,11 +13,12 @@ public class Main {
     //EVERY TIME WE SEE WRITE / FLUSH (OBJECT) > MEANS CHUNK ENCODE WITH OBJECT IE MESSAGE
 
     public static void main(String[] args)throws Exception {
-        /*
         RtmpServer server = new RtmpServer(1935);
         server.start();
-        */
 
+        //TSPacketManager pm = new TSPacketManager();
+
+        /*
         File f = new File("/home/brad/Downloads/stream000.ts");
         InputStream in = new FileInputStream(f);
 

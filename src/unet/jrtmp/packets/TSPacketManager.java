@@ -8,28 +8,41 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-
-import static unet.jrtmp.packets.TSPacket.TS_PACKET_SIZE;
+import java.nio.ByteBuffer;
+import java.util.zip.CRC32;
 
 public class TSPacketManager extends PacketManager {
+
+
+    public static final int TS_PACKET_SIZE = 188;
 
     private int pid = 0, continuity = 0, position = 0;
 
     //private TSPacket packet;
-    private byte[] buffer;
+    private byte[] videoBuffer, audioBuffer;
 
     //private List<byte[]> segments;
     private OutputStream out;
 
     public TSPacketManager(){
-        buffer = new byte[TS_PACKET_SIZE];
+        videoBuffer = new byte[TS_PACKET_SIZE];
+        audioBuffer = new byte[TS_PACKET_SIZE];
         //segments = new ArrayList<>();
         try{
             out = new FileOutputStream(new File("/home/brad/Downloads/test.ts"));
 
             //WRITE PAT
+            out.write(generatePATSegment());
+
+            System.out.println();
+
             //WRITE PMT
+            out.write(generatePMTSegment());
+
+            System.out.println();
+
             //WRITE PCR
+            out.write(generatePCRSegment());
 
             //THEN WRITE THE DATA PACKETS
             //4 byte header - 184 bytes of payload segments
@@ -49,74 +62,206 @@ public class TSPacketManager extends PacketManager {
 
     @Override
     public void add(RtmpMediaMessage message){
-
-        //WE DONT COMBINE.... WHAT A WASTE OF FUCKING TIME...
-
-        try{
-            out.write(message.raw());
-            out.flush();
-        }catch(IOException e){
-            e.printStackTrace();
-        }
-
-
-        /*
-        try{
-            if(message instanceof AudioMessage){
-                writeTSData(0x0110, message.raw());
-
-            }else if(message instanceof VideoMessage){
-                writeTSData(0x0100, message.raw());
-            }
-        }catch(IOException e){
-            e.printStackTrace();
-        }
-
-        /*
         int dataLength = message.raw().length;
 
-        if(dataLength <= TS_PACKET_SIZE-position){
-            // Append the entire data to the current segment
-            System.arraycopy(message.raw(), 0, buffer, position, dataLength);
-            position += dataLength;
+        //ENSURE PID...
 
-        }else{
-            int offset = 0;
+        if(message instanceof AudioMessage){
+            if(dataLength <= TS_PACKET_SIZE-4-position){
+                // Append the entire data to the current segment
+                System.arraycopy(message.raw(), 0, videoBuffer, position, dataLength);
+                position += dataLength;
 
-            while(offset < dataLength){
-                int bytesToCopy = Math.min(TS_PACKET_SIZE-position, dataLength-offset);
-                System.arraycopy(message.raw(), offset, buffer, position, bytesToCopy);
-                offset += bytesToCopy;
-                position += bytesToCopy;
+            }else{
+                int offset = 0;
 
-                if(position == TS_PACKET_SIZE){
-                    //segments.add(buffer);
-                    write(new TSPacket(buffer, pid, continuity));
-                    continuity++;
-                    buffer = new byte[TS_PACKET_SIZE];
-                    position = 0;
+                while(offset < dataLength){
+                    int bytesToCopy = Math.min(TS_PACKET_SIZE-4-position, dataLength-offset);
+                    System.arraycopy(message.raw(), offset, videoBuffer, position, bytesToCopy);
+                    offset += bytesToCopy;
+                    position += bytesToCopy;
+
+                    if(position == TS_PACKET_SIZE-4){
+                        //segments.add(buffer);
+                        write(new TSPacket(videoBuffer, pid, continuity));
+                        continuity++;
+                        videoBuffer = new byte[TS_PACKET_SIZE-4];
+                        position = 0;
+                    }
+                }
+            }
+
+        }else if(message instanceof VideoMessage){
+            if(dataLength <= TS_PACKET_SIZE-4-position){
+                // Append the entire data to the current segment
+                System.arraycopy(message.raw(), 0, audioBuffer, position, dataLength);
+                position += dataLength;
+
+            }else{
+                int offset = 0;
+
+                while(offset < dataLength){
+                    int bytesToCopy = Math.min(TS_PACKET_SIZE-4-position, dataLength-offset);
+                    System.arraycopy(message.raw(), offset, audioBuffer, position, bytesToCopy);
+                    offset += bytesToCopy;
+                    position += bytesToCopy;
+
+                    if(position == TS_PACKET_SIZE-4){
+                        //segments.add(buffer);
+                        write(new TSPacket(audioBuffer, pid, continuity));
+                        continuity++;
+                        audioBuffer = new byte[TS_PACKET_SIZE-4];
+                        position = 0;
+                    }
                 }
             }
         }
-        */
     }
 
     @Override
     public void write(Packet packet){
         //packet.getRaw());
-        /*
         try{
             out.write(packet.getRaw());
             out.flush();
         }catch(IOException e){
             e.printStackTrace();
         }
-        */
     }
 
+    private byte[] generatePATSegment(){
+        byte[] segment = new byte[TS_PACKET_SIZE];
+
+        segment[0] = 0x47; // Sync byte
+        segment[1] = 0x40; // Transport Error Indicator, Payload Unit Start Indicator, and Transport Priority
+        segment[2] = 0x00; // PID (Program ID)
+        segment[3] = 0x10; // Transport Scrambling Control, Adaptation Field Control, and Continuity Counter
+        segment[4] = 0x00; // Payload (Program Association Table)
+
+        // Set the PAT section length (including the CRC)
+        segment[5] = 0x00; // High byte of section length (always zero for PAT)
+        segment[6] = 0x0D; // Low byte of section length (13 bytes excluding the first 5 bytes)
+
+        // Set the Program Number and PID for the first program
+        segment[7] = 0x00; // Program Number (0)
+        segment[8] = 0x00; // High byte of PID for Program Map Table (0x0001)
+        segment[9] = 0x01; // Low byte of PID for Program Map Table (0x00C1)
+
+        // Calculate and set the correct CRC32 value (based on the bytes)
+        int crc32 = (int) calculateCRC32(segment, 5, 9);
+        segment[10] = (byte) ((crc32 >> 24) & 0xFF);
+        segment[11] = (byte) ((crc32 >> 16) & 0xFF);
+        segment[12] = (byte) ((crc32 >> 8) & 0xFF);
+        segment[13] = (byte) (crc32 & 0xFF);
+
+        for(int i = 14; i < TS_PACKET_SIZE; i++){
+            segment[i] = (byte) 0xFF;
+        }
+
+        for(int i = 0; i < segment.length; i++){
+            System.out.printf("%02X ", segment[i]);
+        }
+
+        // Output the PAT segment in hexadecimal format
+        /*
+        for (int i = 0; i < 188; i++) {
+            System.out.printf("%02X ", segment[i]);
+        }
+
+        /*
+        // Set the Sync Byte (always 0x47)
+        segment[0] = 0x47;
+
+        // Set the Transport Error Indicator, Payload Unit Start Indicator, and Transport Priority
+        // In this example, we're not setting any errors or priorities, so these bits are all set to 0
+        segment[1] = 0x00;
+
+        // Set the PID for the PAT (Program Association Table)
+        // The PID for the PAT is always 0x0000
+        segment[2] = 0x00;
+        segment[3] = 0x00;
+
+        // Set the Transport Scrambling Control to '00' (no scrambling)
+        segment[4] = 0x00;
+
+        // Set the Adaptation Field Control to '01' (indicating the presence of an adaptation field)
+        // Note: In this example, we're not adding an adaptation field, so the remaining bits are set to '00'
+        segment[5] = 0x10;
+
+        // Set the Continuity Counter (increment this for each PAT packet)
+        // In this example, we're starting with a counter value of 0
+        segment[6] = 0x00;
+        */
+
+        return segment;
+    }
+
+    private long calculateCRC32(byte[] data, int start, int end){
+        CRC32 crc32 = new CRC32();
+        crc32.update(data, start, end - start + 1);
+        return crc32.getValue();
+    }
+
+    private byte[] generatePMTSegment(){
+        byte[] segment = new byte[TS_PACKET_SIZE];
+
+        // Set the values for the PMT header
+        segment[0] = 0x47; // Sync byte
+        segment[1] = 0x40; // Transport Error Indicator, Payload Unit Start Indicator, and Transport Priority
+        segment[2] = 0x00; // PID (Program ID)
+        segment[3] = 0x10; // Transport Scrambling Control, Adaptation Field Control, and Continuity Counter
+        segment[4] = 0x00; // Payload (Program Map Table)
+
+        // Set the PMT section length (including the adaptation field if present)
+        segment[5] = 0x00; // High byte of section length (always zero for PMT)
+        segment[6] = 0x0D; // Low byte of section length (13 bytes excluding the first 5 bytes)
+
+        for(int i = 14; i < TS_PACKET_SIZE; i++){
+            segment[i] = (byte) 0xFF;
+        }
+
+        // Add your own data here (modify as needed)
+        // Bytes 7 to 187 are available for your data
+
+        // Output the PMT segment in hexadecimal format
+        for(int i = 0; i < segment.length; i++){
+            System.out.printf("%02X ", segment[i]);
+        }
+
+        return segment;
+    }
+
+    private byte[] generatePCRSegment(){
+        byte[] segment = new byte[TS_PACKET_SIZE];
+
+        // Set the values for the PCR header
+        segment[0] = 0x47; // Sync byte
+        segment[1] = (byte) 0x50; // Transport Error Indicator, Payload Unit Start Indicator, and Transport Priority
+        segment[2] = 0x00; // PID (Program ID)
+        segment[3] = 0x10; // Transport Scrambling Control, Adaptation Field Control, and Continuity Counter
+        segment[4] = 0x00; // Payload (PCR)
+
+        // Set the PCR section length (including the adaptation field if present)
+        segment[5] = 0x00; // High byte of section length (always zero for PCR)
+        segment[6] = (byte) 0xB0; // Low byte of section length (176 bytes excluding the first 5 bytes)
+
+        // Add your own PCR data here (modify as needed)
+        // Bytes 7 to 181 are available for your PCR data
 
 
+        for(int i = 7; i < TS_PACKET_SIZE; i++){
+            segment[i] = (byte) 0xFF;
+        }
 
+        // Output the PCR segment in hexadecimal format
+        for(int i = 0; i < segment.length; i++){
+            System.out.printf("%02X ", segment[i]);
+        }
+
+        return segment;
+    }
+
+    /*
     private void writeTSData(int pid, byte[] data) throws IOException {
         // Split data into TS packets and write them to the output stream
         int dataLength = data.length;

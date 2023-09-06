@@ -71,9 +71,14 @@ public class Stream {
             if(message instanceof VideoMessage){
                 message.setTimestampDelta(obsTimeStamp-videoTimestamp);
                 videoTimestamp = obsTimeStamp;
+
+                //System.out.println("VIDEO-PACKET: "+message.raw().length);
+
             }else if(message instanceof AudioMessage){
                 message.setTimestampDelta(obsTimeStamp-audioTimestamp);
                 audioTimestamp = obsTimeStamp;
+
+                //System.out.println("AUDIO-PACKET: "+message.raw().length);
             }
 
         }else{
@@ -88,6 +93,8 @@ public class Stream {
                     videoTimestamp += vm.getTimestampDelta();
                     vm.setTimestamp(videoTimestamp);
                 }
+
+                //System.out.println("VIDEO-PACKET: "+message.raw().length);
             }
 
             if(message instanceof AudioMessage){
@@ -100,6 +107,8 @@ public class Stream {
                     audioTimestamp += am.getTimestampDelta();
                     am.setTimestamp(audioTimestamp);
                 }
+
+                //System.out.println("AUDIO-PACKET: "+message.raw().length);
             }
         }
 
