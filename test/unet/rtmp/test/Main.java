@@ -12,14 +12,20 @@ public class Main {
     //ADD STREAM MANAGER
     //EVERY TIME WE SEE WRITE / FLUSH (OBJECT) > MEANS CHUNK ENCODE WITH OBJECT IE MESSAGE
 
+    //MAKE TS FILES FOR CHECK
+    //ffmpeg -i "/home/brad/Videos/stream.mp4" -codec: copy -start_number 0 -hls_time 10 -hls_list_size 0 -f hls output.m3u8
+
+    //STREAM RTMP
+    //ffmpeg -re -i "/home/brad/Videos/stream.mp4" -c:v libx264 -c:a aac -f flv rtmp://127.0.0.1/live
+
     public static void main(String[] args)throws Exception {
         RtmpServer server = new RtmpServer(1935);
-        server.start();
+        //server.start();
 
         //TSPacketManager pm = new TSPacketManager();
 
-        /*
-        File f = new File("/home/brad/Downloads/stream-0.ts");
+        File f = new File("/home/brad/Downloads/test.flv");
+        //File f = new File("/home/brad/Videos/stream/output0.ts");
         InputStream in = new FileInputStream(f);
 
         byte[] b = new byte[188];

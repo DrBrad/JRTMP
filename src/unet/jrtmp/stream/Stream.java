@@ -1,6 +1,7 @@
 package unet.jrtmp.stream;
 
 import unet.jrtmp.packets.PacketManager;
+import unet.jrtmp.packets.flv.FLVPacketManager;
 import unet.jrtmp.packets.mpegts.TSPacketManager;
 import unet.jrtmp.rtmp.messages.AudioMessage;
 import unet.jrtmp.rtmp.messages.RtmpMediaMessage;
@@ -32,8 +33,8 @@ public class Stream {
     public Stream(StreamName name){
         this.name = name;
         //content = new ArrayList<>();
-        //packetManager = new FLVPacketManager(this);
-        packetManager = new TSPacketManager();
+        packetManager = new FLVPacketManager(this);
+        //packetManager = new TSPacketManager();
 
         /*
         buffer = ByteBuffer.allocate(188);
@@ -86,7 +87,7 @@ public class Stream {
                     vm.setTimestamp(videoTimestamp);
                 }
 
-                //System.out.println("VIDEO-PACKET: "+message.raw().length);
+                System.out.println("VIDEO-PACKET: "+message.raw().length);
             }
 
             if(message instanceof AudioMessage){
@@ -100,7 +101,7 @@ public class Stream {
                     am.setTimestamp(audioTimestamp);
                 }
 
-                //System.out.println("AUDIO-PACKET: "+message.raw().length);
+                System.out.println("AUDIO-PACKET: "+message.raw().length);
             }
         }
 
